@@ -55,6 +55,11 @@ export default function PageLayout({ children }: PageLayoutProps) {
     <div className="flex min-h-screen bg-cl-surface">
       <TopNavBar />
       <SideNavBar />
+      {/*
+        NOTE: animate-fade-in-up keeps transform:translateY(0) via
+        fill-mode:both, which would break position:fixed descendants.
+        Modal.tsx uses createPortal to escape this stacking context.
+      */}
       <main className="flex-1 lg:ml-56 pt-16 pb-24 lg:pb-6 flex flex-col animate-fade-in-up">
         {children}
       </main>

@@ -14,11 +14,20 @@
 //     {/* content */}
 //   </Modal>
 //
+// WHY createPortal?
+//  PageLayout's <main> uses `animate-fade-in-up` which keeps
+//  `transform: translateY(0)` via animation-fill-mode:both after the
+//  animation ends. Any CSS transform on an ancestor creates a new
+//  containing block for `position:fixed` descendants, breaking their
+//  viewport-relative positioning. Portaling into <body> escapes that
+//  stacking context entirely so the overlay covers the full screen.
+//
 // Returning null when closed means the component leaves the
 // DOM entirely, which resets all internal form state automatically.
 // ──────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from "react";
+import { createPortal }      from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -50,7 +59,9 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
   // Fully remove from DOM when closed — this also resets child state
   if (!open) return null;
 
-  return (
+  // Portal into <body> so the overlay isn't constrained by any ancestor
+  // transform (see WHY createPortal comment at the top of this file).
+  return createPortal(
     /* Backdrop overlay — semi-transparent + blur */
     <div
       ref={overlayRef}
@@ -80,6 +91,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
