@@ -1,61 +1,210 @@
+/* ════════════════════════════════════════════════════════
+   ClassLink – Global Styles
+   ════════════════════════════════════════════════════════
+
+   Sections:
+   1. Tailwind directives
+   2. Font import
+   3. CSS design tokens (custom properties)
+   4. Base / reset overrides
+   5. Scrollbar utilities
+   6. Gradient & surface utilities
+   7. Interactive element helpers
+   8. Keyframe animation definitions
+   9. Animation helper classes
+   10. Stagger delay helpers
+   11. Skeleton loading
+   12. Modal animations
+   ════════════════════════════════════════════════════════ */
+
+/* ── 1. Tailwind Directives ──────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── 2. Font Import ──────────────────────────────────── */
+/* Manrope: clean geometric sans-serif, weights 200–800   */
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
 
+/* ── 3. CSS Design Tokens ────────────────────────────── */
 :root {
-  --cl-primary: #00687a;
+  /* Brand colours (mirrored from tailwind.config.ts for use in gradient utilities) */
+  --cl-primary:       #00687a;
   --cl-primary-light: #06b6d4;
 }
 
+/* ── 4. Base Overrides ───────────────────────────────── */
 body {
   font-family: "Manrope", system-ui, sans-serif;
+  /* Smooth scrolling for anchor jumps and programmatic scrolls */
+  scroll-behavior: smooth;
+  /* Prevents layout shift caused by scrollbar appearing/disappearing */
+  scrollbar-gutter: stable;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+/* ── 5. Scrollbar Utilities ──────────────────────────── */
+
+/* Hide scrollbar while keeping scroll functionality (used on tag strips, etc.) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
+/* Thin decorative scrollbar for chat / overflow panels */
+.thin-scrollbar::-webkit-scrollbar        { width: 4px; }
+.thin-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.thin-scrollbar::-webkit-scrollbar-thumb  {
+  background: #bcc9cd;
+  border-radius: 99px;
+}
+
+/* ── 6. Gradient & Surface Utilities ─────────────────── */
+
+/* Primary brand gradient: deep teal → bright cyan */
 .primary-gradient {
-  background: linear-gradient(135deg, #00687a 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, var(--cl-primary) 0%, var(--cl-primary-light) 100%);
 }
 
-/* Smooth page transitions */
-.page-enter {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.page-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms ease, transform 300ms ease;
+/* Repeating cross-hatch SVG used in hero/banner backgrounds.
+   Applied as a semi-transparent overlay to add texture depth. */
+.hero-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
-/* Modal overlay */
-.modal-overlay {
-  animation: fadeIn 200ms ease;
+/* ── 7. Interactive Element Helpers ─────────────────── */
+
+/* Adds hover-lift + shadow for clickable cards.
+   Use on any <div> / <article> card that should feel interactive. */
+.card-interactive {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
-.modal-content {
-  animation: slideUp 300ms cubic-bezier(0.16, 1, 0.3, 1);
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px -5px  rgba(0, 104, 122, 0.10),
+    0 4px 10px  -6px rgba(0, 104, 122, 0.06);
 }
 
+/* Tactile press-down micro-interaction for buttons */
+.btn-press {
+  transition: transform 150ms ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* ── 8. Keyframe Definitions ─────────────────────────── */
+
+/* Simple opacity fade – used for overlay backgrounds */
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+
+/* Fade + slide up – primary page/card entrance animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Fade + slide down – used for dropdowns opening from the top */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scale from slightly smaller – used for pop-up cards / tooltips */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Slide from left – used for sidebar nav items on mount */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Elastic bounce pop – badge awards, notification badges */
+@keyframes popIn {
+  0%   { transform: scale(0.72); opacity: 0; }
+  65%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+/* Bell shake – plays on TopNavBar bell when unread count > 0 */
+@keyframes ringBell {
+  0%, 100% { transform: rotate(0deg);   }
+  15%       { transform: rotate(15deg);  }
+  35%       { transform: rotate(-12deg); }
+  55%       { transform: rotate(8deg);   }
+  75%       { transform: rotate(-5deg);  }
+}
+
+/* Pulsing dot – online/active status indicators */
 @keyframes pulse-dot {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.18); }
 }
-.animate-pulse-dot {
-  animation: pulse-dot 2s infinite;
+
+/* Horizontal sweep for loading skeletons */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
 }
+
+/* Modal backdrop entrance */
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Modal card entrance – slides up and scales in */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);   }
+}
+
+/* ── 9. Animation Helper Classes ─────────────────────── */
+/* Use these on elements that should animate on mount.
+   All use `animation-fill-mode: both` so the element starts hidden. */
+
+.animate-fade-in        { animation: fadeIn       300ms ease both; }
+.animate-fade-in-up     { animation: fadeInUp     420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in-down   { animation: fadeInDown   280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-scale-in       { animation: scaleIn      320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-in-left  { animation: slideInLeft  360ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-pop-in         { animation: popIn        460ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-ring           { animation: ringBell     600ms ease; }
+.animate-pulse-dot      { animation: pulse-dot      2s  infinite; }
+
+/* ── 10. Stagger Delay Helpers ───────────────────────── */
+/* Combine with any animate-* class to create sequenced grid entrances.
+   Example: <div className="animate-fade-in-up stagger-2"> */
+.stagger-1 { animation-delay:  80ms; }
+.stagger-2 { animation-delay: 160ms; }
+.stagger-3 { animation-delay: 240ms; }
+.stagger-4 { animation-delay: 320ms; }
+.stagger-5 { animation-delay: 400ms; }
+.stagger-6 { animation-delay: 480ms; }
+
+/* ── 11. Skeleton Loading ────────────────────────────── */
+/* Gradient sweep effect for placeholder content while data loads */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f3ff 25%,
+    #e0e8f8 50%,
+    #f0f3ff 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 0.5rem;
+}
+
+/* ── 12. Modal Animations ────────────────────────────── */
+/* Applied via className in Modal.tsx */
+.modal-overlay { animation: overlayIn 200ms ease; }
+.modal-content { animation: slideUp   360ms cubic-bezier(0.16, 1, 0.3, 1); }

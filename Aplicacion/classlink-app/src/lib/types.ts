@@ -1,140 +1,243 @@
-// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────
 // ClassLink – Global TypeScript Types
-// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────
+// All shared data interfaces live here so every component
+// imports from one authoritative source.
+//
+// Sections:
+//  1. Primitives & unions
+//  2. User / profile models
+//  3. Social feed
+//  4. Talent directory
+//  5. Messaging
+//  6. Gamification
+//  7. Navigation
+//  8. School administration
+// ──────────────────────────────────────────────────────────
 
+/* ── 1. Primitives & Unions ─────────────────────────────── */
+
+/** The four user archetypes in the platform */
 export type Role = "Estudiante" | "Egresado" | "Empresa" | "Colegio";
 
-/* ─── User / Profile Model ─── */
+/* ── 2. User / Profile Models ───────────────────────────── */
+
+/**
+ * Core user account that adapts to all four roles.
+ * Optional fields are populated depending on the role:
+ *  - Students/Egresados: xp, level, streak, gpa, skills, portfolio
+ *  - Companies:          companyName, industry, employeeCount, website, openPositions
+ *  - Schools:            schoolName, studentCount, allianceCount, employabilityRate
+ */
 export interface UserProfile {
-  id: string;
-  role: Role;
-  name: string;
-  avatar: string;
-  email: string;
-  bio: string;
-  location: string;
+  id:         string;
+  role:       Role;
+  name:       string;
+  /** Absolute URL to the user's avatar image */
+  avatar:     string;
+  email:      string;
+  bio:        string;
+  location:   string;
+  /** ISO date string of when the user joined the platform */
   joinedDate: string;
-  specialty?: string;
-  title?: string;
-  skills?: string[];
-  xp?: number;
-  xpMax?: number;
-  level?: number;
-  streak?: number;
-  gpa?: number;
-  availability?: "Disponible" | "En prácticas" | "No disponible";
-  certifications?: string[];
-  yearsExperience?: number;
-  portfolio?: PortfolioItem[];
-  companyName?: string;
-  industry?: string;
-  employeeCount?: string;
-  website?: string;
+
+  /* ─ Student / Egresado specific ─ */
+  specialty?:        string;
+  title?:            string;
+  skills?:           string[];
+  xp?:               number;
+  xpMax?:            number;
+  level?:            number;
+  streak?:           number;        // consecutive days active
+  gpa?:              number;        // academic grade point average
+  availability?:     "Disponible" | "En prácticas" | "No disponible";
+  certifications?:   string[];
+  yearsExperience?:  number;
+  portfolio?:        PortfolioItem[];
+
+  /* ─ Company specific ─ */
+  companyName?:  string;
+  industry?:     string;
+  employeeCount?: string;           // e.g. "250+" — stored as string for display
+  website?:      string;
   openPositions?: number;
-  schoolName?: string;
-  studentCount?: number;
-  allianceCount?: number;
-  employabilityRate?: number;
+
+  /* ─ School specific ─ */
+  schoolName?:        string;
+  studentCount?:      number;
+  allianceCount?:     number;
+  employabilityRate?: number;       // percentage 0–100
 }
 
+/**
+ * A single item in a student's or graduate's portfolio.
+ * Displayed as a card in the profile Portafolio tab.
+ */
 export interface PortfolioItem {
-  id: string;
-  title: string;
+  id:          string;
+  title:       string;
   description: string;
-  tags: string[];
-  image?: string;
-  link?: string;
+  /** Technology / topic tags shown as chips */
+  tags:        string[];
+  /** Cover image URL */
+  image?:      string;
+  /** External project URL */
+  link?:       string;
 }
 
+/* ── 3. Notifications ───────────────────────────────────── */
+
+/**
+ * Platform-wide notification sent to specific roles.
+ * `forRoles` lets the context filter notifications
+ * to only those relevant to the currently active role.
+ */
 export interface AppNotification {
-  id: string;
-  title: string;
+  id:          string;
+  title:       string;
   description: string;
-  time: string;
-  read: boolean;
-  forRoles: Role[];
+  /** Human-readable relative time string, e.g. "Hace 2 horas" */
+  time:        string;
+  /** Whether this notification has been read (server-side initial state) */
+  read:        boolean;
+  /** Which roles should see this notification */
+  forRoles:    Role[];
 }
 
+/* ── 4. Social Feed ─────────────────────────────────────── */
+
+/**
+ * A post on El Muro (the community feed).
+ * category distinguishes regular posts from portfolio showcases.
+ */
 export interface FeedPost {
-  id: string;
-  title: string;
+  id:          string;
+  title:       string;
   description: string;
-  content?: string;
-  author: string;
-  authorName?: string;
+  /** Full post body text (optional — description is used as fallback) */
+  content?:    string;
+  author:      string;              // internal username / id
+  authorName?: string;              // display name
   authorAvatar: string;
-  authorRole: Role | string;
-  image: string;
-  tag: string;
-  likes: number;
-  liked: boolean;
-  comments: number;
-  category: "publicacion" | "portafolio";
-  createdAt: string;
+  authorRole:  Role | string;
+  /** Featured image URL */
+  image:       string;
+  /** Primary topic tag, e.g. "Mecatronica" */
+  tag:         string;
+  likes:       number;
+  /** Whether the current viewer has liked this post */
+  liked:       boolean;
+  comments:    number;
+  category:    "publicacion" | "portafolio";
+  /** ISO date string (YYYY-MM-DD) */
+  createdAt:   string;
 }
 
+/* ── 5. Talent Directory ────────────────────────────────── */
+
+/**
+ * A searchable talent profile (student or graduate).
+ * Used in the /talent directory and company dashboards.
+ */
 export interface TalentProfile {
-  id: string;
-  name: string;
-  role: "Estudiante" | "Egresado";
-  title: string;
-  avatar: string;
-  skills: string[];
-  specialty: string;
-  bio: string;
-  location: string;
+  id:           string;
+  name:         string;
+  role:         "Estudiante" | "Egresado";
+  title:        string;
+  avatar:       string;
+  skills:       string[];
+  specialty:    string;
+  bio:          string;
+  location:     string;
   availability: "Disponible" | "En prácticas" | "No disponible";
-  matchScore?: number;
-  xp: number;
-  level: number;
-  gpa?: number;
-  certifications: string[];
+  /** AI-computed compatibility score 0–100 (only relevant for Empresa viewers) */
+  matchScore?:  number;
+  xp:           number;
+  level:        number;
+  gpa?:         number;
+  certifications:   string[];
   yearsExperience?: number;
-  portfolio: PortfolioItem[];
+  portfolio:    PortfolioItem[];
 }
 
+/* ── 6. Messaging ───────────────────────────────────────── */
+
+/** A conversation thread entry shown in the sidebar of /messages */
 export interface Conversation {
-  id: string;
-  name: string;
-  initials: string;
-  role: string;
-  avatar: string;
+  id:          string;
+  name:        string;
+  /** Two-letter initials for avatar fallback */
+  initials:    string;
+  role:        string;
+  /** Avatar image URL */
+  avatar:      string;
   lastMessage: string;
-  lastTime: string;
-  unread: number;
-  online: boolean;
+  /** Human-readable time of the last message, e.g. "10:32" */
+  lastTime:    string;
+  /** Number of unread messages in this conversation */
+  unread:      number;
+  /** Whether the other participant is currently online */
+  online:      boolean;
 }
 
+/** A single chat bubble inside a conversation */
 export interface ChatMessage {
-  id: string;
+  id:             string;
   conversationId: string;
-  sender: "me" | "them";
-  text: string;
-  time: string;
+  /** "me" = sent by the current user; "them" = received */
+  sender:         "me" | "them";
+  text:           string;
+  /** Display time string, e.g. "14:22" */
+  time:           string;
 }
 
+/* ── 7. Gamification ────────────────────────────────────── */
+
+/**
+ * An achievement badge earned (or not yet earned) by a student.
+ * Locked badges are shown with reduced opacity in the grid.
+ */
 export interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  earned: boolean;
-  date?: string;
+  id:          string;
+  name:        string;
+  /** Lucide icon name in kebab-case, passed to the <Icon> component */
+  icon:        string;
+  earned:      boolean;
+  /** ISO date string when the badge was earned (only set if earned === true) */
+  date?:       string;
   description: string;
 }
 
+/* ── 8. Navigation ──────────────────────────────────────── */
+
+/**
+ * A sidebar navigation link definition.
+ * visibleFor controls which roles see the link —
+ * used by SideNavBar and BottomMobileNav to filter the link list.
+ */
 export interface SidebarLink {
-  path: string;
-  label: string;
-  icon: string;
+  path:       string;
+  label:      string;
+  /** Lucide icon name */
+  icon:       string;
   visibleFor: Role[];
 }
 
+/* ── 9. School Administration ───────────────────────────── */
+
+/**
+ * A pending request in the school admin queue.
+ * Examples: internship approval, alliance request, certification.
+ */
 export interface QueueRequest {
-  id: string;
-  title: string;
+  id:          string;
+  title:       string;
   description: string;
-  author: string;
-  urgent: boolean;
-  type: "practica" | "alianza" | "certificacion" | "reporte";
-  date: string;
+  /** Name of the person / company who submitted the request */
+  author:      string;
+  /** Marks high-priority items that need immediate attention */
+  urgent:      boolean;
+  type:        "practica" | "alianza" | "certificacion" | "reporte";
+  /** Submission date string */
+  date:        string;
 }

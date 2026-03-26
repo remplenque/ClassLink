@@ -1,43 +1,78 @@
 "use client";
+// ──────────────────────────────────────────────────────────
+// BottomMobileNav – Fixed bottom navigation for mobile
+// ──────────────────────────────────────────────────────────
+// Visible only on screens below the lg breakpoint (<1024px).
+// Five equally-spaced icon+label tabs, mirroring the sidebar.
+//
+// Active state:
+//  - Icon gets cyan colour + heavier stroke weight
+//  - Label switches to bold + cyan
+//  - A small cyan pill/dot appears below the icon
+//
+// Unread badge floats on the Messages (Chat) tab.
+// ──────────────────────────────────────────────────────────
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import { LayoutDashboard, Newspaper, Users, MessageCircle, User } from "lucide-react";
 
-const links = [
-  { path: "/muro", label: "Muro", icon: Newspaper },
-  { path: "/talent", label: "Talento", icon: Users },
-  { path: "/", label: "Home", icon: LayoutDashboard },
-  { path: "/messages", label: "Chat", icon: MessageCircle },
-  { path: "/profile", label: "Perfil", icon: User },
+// Five tabs shown in the mobile bar (order: left → right)
+const LINKS = [
+  { path: "/muro",     label: "Muro",   icon: Newspaper      },
+  { path: "/talent",   label: "Talento", icon: Users         },
+  { path: "/",         label: "Home",    icon: LayoutDashboard },
+  { path: "/messages", label: "Chat",    icon: MessageCircle  },
+  { path: "/profile",  label: "Perfil",  icon: User           },
 ];
 
 export default function BottomMobileNav() {
-  const pathname = usePathname();
+  const pathname    = usePathname();
   const { unreadCount } = useRole();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-5 pt-2 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
-      {links.map((link) => {
+    // Frosted-glass bar pinned to the bottom of the viewport.
+    // pb-5 accounts for iOS safe-area inset on notched devices.
+    <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-1 pb-5 pt-2 bg-white/92 backdrop-blur-xl border-t border-slate-200/60 shadow-[0_-2px_12px_rgba(0,0,0,0.05)]">
+      {LINKS.map((link) => {
         const isActive = pathname === link.path;
         const IconComp = link.icon;
+
         return (
           <Link
             key={link.path}
             href={link.path}
-            className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
-              isActive ? "text-cyan-600" : "text-slate-400"
-            }`}
+            className={`
+              flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl
+              transition-all duration-200
+              ${isActive ? "text-cyan-600" : "text-slate-400 hover:text-slate-600"}
+            `}
           >
+            {/* Icon + unread badge container */}
             <span className="relative">
-              <IconComp size={22} strokeWidth={isActive ? 2.25 : 1.5} />
+              <IconComp
+                size={22}
+                strokeWidth={isActive ? 2.25 : 1.5}
+              />
+
+              {/* Unread message count badge */}
               {link.path === "/messages" && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center bg-red-500 text-white text-[8px] font-bold rounded-full">
+                <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] flex items-center justify-center bg-red-500 text-white text-[8px] font-bold rounded-full">
                   {unreadCount}
                 </span>
               )}
             </span>
-            <span className={`text-[10px] ${isActive ? "font-bold" : "font-medium"}`}>{link.label}</span>
+
+            {/* Active indicator dot below icon */}
+            {isActive && (
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pop-in" />
+            )}
+
+            {/* Label text */}
+            <span className={`text-[9px] ${isActive ? "font-bold" : "font-medium"}`}>
+              {link.label}
+            </span>
           </Link>
         );
       })}
