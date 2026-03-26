@@ -17,7 +17,7 @@ const ROLE_EMOJI: Record<Role, string> = {
   Egresado: "💼",
   Empresa: "🏢",
   Colegio: "🏫",
-};
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
 export default function TopNavBar() {
   const { role, setRole, notifications, unreadCount, markRead, markAllRead } = useRole();
