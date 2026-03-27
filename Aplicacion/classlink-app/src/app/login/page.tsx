@@ -150,8 +150,19 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Guest bypass */}
+          <div className="px-8 pb-2">
+            <button
+              type="button"
+              onClick={() => { loginAsGuest(); router.replace("/"); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 text-sm font-semibold hover:border-slate-300 hover:text-slate-500 transition-all"
+            >
+              <UserX size={15} /> Entrar sin cuenta (solo demo)
+            </button>
+          </div>
+
           {/* Register link */}
-          <div className="px-8 pb-8 text-center">
+          <div className="px-8 pb-8 pt-3 text-center">
             <p className="text-sm text-slate-500">
               ¿No tienes cuenta?{" "}
               <Link href="/register" className="text-cyan-600 font-semibold hover:underline">

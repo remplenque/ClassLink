@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────
--- ClassLink – Supabase Database Schema
--- Run this entire file in your Supabase SQL Editor:
--- https://supabase.com/dashboard/project/irpotadzvjtfzmgcpidn/sql/new
+-- ClassLink – Supabase Database Schema  (idempotent – safe to re-run)
+-- Paste this entire file into the Supabase SQL Editor and click Run:
+-- https://supabase.com/dashboard/project/<your-project-id>/sql/new
 -- ─────────────────────────────────────────────────────────────
 
 -- ── 1. Profiles (extends auth.users) ─────────────────────────
@@ -47,6 +47,18 @@ ALTER TABLE profiles   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies before recreating (makes this script re-runnable)
+DROP POLICY IF EXISTS "profiles_select" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert" ON profiles;
+DROP POLICY IF EXISTS "profiles_update" ON profiles;
+DROP POLICY IF EXISTS "posts_select"    ON posts;
+DROP POLICY IF EXISTS "posts_insert"    ON posts;
+DROP POLICY IF EXISTS "posts_update"    ON posts;
+DROP POLICY IF EXISTS "posts_delete"    ON posts;
+DROP POLICY IF EXISTS "likes_select"    ON post_likes;
+DROP POLICY IF EXISTS "likes_insert"    ON post_likes;
+DROP POLICY IF EXISTS "likes_delete"    ON post_likes;
+
 -- Profiles: everyone can read; owners can write their own row
 CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (true);
 CREATE POLICY "profiles_insert" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
@@ -84,6 +96,7 @@ FOR EACH ROW EXECUTE FUNCTION sync_likes_count();
 
 -- ── 6. Trigger: auto-create profile on sign-up ───────────────
 -- Reads name + role from the auth.users metadata set during signUp().
+-- SECURITY DEFINER lets this run as the DB owner, bypassing RLS.
 
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
