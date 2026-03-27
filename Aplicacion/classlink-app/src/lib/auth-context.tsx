@@ -1,21 +1,16 @@
 "use client";
 // ──────────────────────────────────────────────────────────
-// ClassLink – Authentication Context
+// ClassLink – Authentication Context (Supabase)
 // ──────────────────────────────────────────────────────────
-// Provides a simple session-based auth layer for the prototype.
-// In production this would be replaced with a real backend
-// (e.g. NextAuth.js, Supabase Auth, or a custom JWT flow).
+// Wraps Supabase Auth so the rest of the app keeps the same
+// AuthUser shape and useAuth() hook it already relies on.
 //
 // What it manages:
-//  user         – the logged-in user object, or null
-//  isLoading    – true on first mount while reading localStorage
-//  login()      – validates credentials against MOCK_USERS
-//  logout()     – clears the session
-//
-// Session persistence:
-//  The logged-in user is stored in localStorage under the key
-//  "cl_session" so the session survives page refreshes.
-//  On mount the context reads that key and rehydrates state.
+//  user         – the logged-in user object (from the profiles table), or null
+//  isLoading    – true while waiting for the initial session check
+//  login()      – sign in with email + password via Supabase Auth
+//  logout()     – sign out and clear user state
+//  register()   – create a new account + matching profile row
 // ──────────────────────────────────────────────────────────
 
 import React, {
@@ -25,6 +20,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { supabase } from "./supabase";
 import type { Role } from "./types";
 
 // ── Shapes ────────────────────────────────────────────────
@@ -40,51 +36,17 @@ export interface AuthUser {
 interface AuthContextValue {
   user:      AuthUser | null;
   isLoading: boolean;
-  /** Returns true on success, false on wrong credentials */
-  login:  (email: string, password: string) => boolean;
-  logout: () => void;
+  /** Returns null on success, an error message string on failure */
+  login:    (email: string, password: string) => Promise<{ error: string | null }>;
+  logout:   () => Promise<void>;
+  /** Create a new account and profile row */
+  register: (
+    email:    string,
+    password: string,
+    name:     string,
+    role:     Role
+  ) => Promise<{ error: string | null }>;
 }
-
-// ── Mock credentials database ─────────────────────────────
-// Each entry has a plain-text password (fine for a prototype;
-// use bcrypt + server-side validation in production).
-
-const MOCK_USERS: Array<AuthUser & { password: string }> = [
-  {
-    id:       "u-student",
-    name:     "Alejandro Mendoza",
-    email:    "alejandro@ctp.cr",
-    password: "Test1234",
-    role:     "Estudiante",
-    avatar:   "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&crop=face",
-  },
-  {
-    id:       "u-company",
-    name:     "Tech Solutions S.A.",
-    email:    "rrhh@techsolutions.cr",
-    password: "Empresa2024",
-    role:     "Empresa",
-    avatar:   "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&h=100&fit=crop",
-  },
-  {
-    id:       "u-school",
-    name:     "CTP Don Bosco",
-    email:    "admin@ctpdonbosco.ed.cr",
-    password: "Colegio2024",
-    role:     "Colegio",
-    avatar:   "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=100&h=100&fit=crop",
-  },
-  {
-    id:       "u-grad",
-    name:     "María Rodríguez",
-    email:    "maria@alumni.cr",
-    password: "Alumni2024",
-    role:     "Egresado",
-    avatar:   "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop&crop=face",
-  },
-];
-
-const SESSION_KEY = "cl_session";
 
 // ── Context ───────────────────────────────────────────────
 
@@ -96,45 +58,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user,      setUser]      = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Rehydrate session from localStorage on first render
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) setUser(JSON.parse(raw) as AuthUser);
-    } catch {
-      localStorage.removeItem(SESSION_KEY);
-    } finally {
-      setIsLoading(false);
+  /**
+   * Fetch the profile row for a given Supabase auth user ID
+   * and store it in React state.
+   */
+  const loadProfile = useCallback(async (supabaseUserId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, email, role, avatar")
+      .eq("id", supabaseUserId)
+      .single();
+
+    if (data) {
+      setUser({
+        id:     data.id,
+        name:   data.name,
+        email:  data.email,
+        role:   data.role as Role,
+        avatar: data.avatar ?? "",
+      });
     }
   }, []);
 
-  /**
-   * Try to log in with the given credentials.
-   * Returns true if a matching user was found, false otherwise.
-   */
-  const login = useCallback((email: string, password: string): boolean => {
-    const match = MOCK_USERS.find(
-      (u) =>
-        u.email.toLowerCase() === email.toLowerCase() &&
-        u.password === password
+  // ── Session bootstrap & listener ──────────────────────
+
+  useEffect(() => {
+    // Check for an existing session on first mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadProfile(session.user.id).finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Keep state in sync with Supabase auth events (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          loadProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+      }
     );
-    if (!match) return false;
 
-    // Strip password before storing
-    const { password: _, ...safeUser } = match;
-    setUser(safeUser);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(safeUser));
-    return true;
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [loadProfile]);
 
-  /** Clear session from state and localStorage */
-  const logout = useCallback(() => {
+  // ── Auth actions ──────────────────────────────────────
+
+  const login = useCallback(
+    async (email: string, password: string): Promise<{ error: string | null }> => {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+      return { error: null };
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
   }, []);
+
+  const register = useCallback(
+    async (
+      email:    string,
+      password: string,
+      name:     string,
+      role:     Role
+    ): Promise<{ error: string | null }> => {
+      // Create the Supabase auth user (metadata is picked up by the DB trigger)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name, role } },
+      });
+      if (error) return { error: error.message };
+
+      // Also insert the profile explicitly as a safety net
+      // (the trigger handles it, but this ensures immediate availability)
+      if (data.user) {
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          id:     data.user.id,
+          email,
+          name,
+          role,
+          avatar: "",
+        });
+        if (profileError) return { error: profileError.message };
+      }
+
+      return { error: null };
+    },
+    []
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
@@ -147,6 +169,3 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
-
-// ── Exported mock users (for the login hint UI) ───────────
-export { MOCK_USERS };

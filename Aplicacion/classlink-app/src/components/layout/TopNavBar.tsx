@@ -42,8 +42,8 @@ export default function TopNavBar() {
   }, []);
 
   /** Log out and redirect to the login page */
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.replace("/login");
   };
 
