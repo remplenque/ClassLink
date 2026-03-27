@@ -8,10 +8,10 @@ import Link       from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import CursorGlow  from "@/components/layout/CursorGlow";
-import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, LogIn, AlertCircle, UserX } from "lucide-react";
 
 export default function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, loginAsGuest, user } = useAuth();
   const router           = useRouter();
 
   const [email,        setEmail]        = useState("");
