@@ -46,8 +46,6 @@ interface AuthContextValue {
     name:     string,
     role:     Role
   ) => Promise<{ error: string | null }>;
-  /** Bypass auth — sets a temporary guest user (dev/demo only) */
-  loginAsGuest: () => void;
 }
 
 // ── Context ───────────────────────────────────────────────
@@ -147,18 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const loginAsGuest = useCallback(() => {
-    setUser({
-      id:     "guest",
-      name:   "Invitado",
-      email:  "invitado@classlink.dev",
-      role:   "Estudiante",
-      avatar: "",
-    });
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, register, loginAsGuest }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
