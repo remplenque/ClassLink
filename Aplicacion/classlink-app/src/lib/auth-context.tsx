@@ -137,19 +137,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (error) return { error: error.message };
 
-      // Also insert the profile explicitly as a safety net
-      // (the trigger handles it, but this ensures immediate availability)
-      if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").upsert({
-          id:     data.user.id,
-          email,
-          name,
-          role,
-          avatar: "",
-        });
-        if (profileError) return { error: profileError.message };
-      }
-
+      // The DB trigger (trg_new_user) handles profile creation automatically.
+      // A client-side upsert here fails when email confirmation is enabled
+      // because auth.uid() is null until the session is confirmed.
       return { error: null };
     },
     []
