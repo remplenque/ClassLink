@@ -27,11 +27,13 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   useCallback,
   useMemo,
 } from "react";
 import type { Role, AppNotification } from "./types";
 import { NOTIFICATIONS } from "./data";
+import { useAuth } from "./auth-context";
 
 // ── Context Shape ─────────────────────────────────────────
 
@@ -59,8 +61,15 @@ const RoleContext = createContext<RoleContextValue | undefined>(undefined);
 // ── Provider Component ────────────────────────────────────
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  // Default role shown on first load
-  const [role, setRole] = useState<Role>("Estudiante");
+  const { user } = useAuth();
+
+  // Role is driven by the authenticated user's account type
+  const [role, setRole] = useState<Role>(user?.role ?? "Estudiante");
+
+  // Keep role in sync whenever the logged-in user changes (login / logout)
+  useEffect(() => {
+    if (user) setRole(user.role);
+  }, [user]);
 
   // Set of notification IDs that the user has read in this session.
   // Using a Set for O(1) membership checks.

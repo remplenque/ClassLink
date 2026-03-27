@@ -14,48 +14,26 @@ import Link        from "next/link";
 import { useRouter } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
-import type { Role } from "@/lib/types";
-import { Bell, ChevronDown, Check, X, LogOut, User as UserIcon } from "lucide-react";
-
-// ── Constants ─────────────────────────────────────────────
-
-const ROLES: Role[] = ["Estudiante", "Egresado", "Empresa", "Colegio"];
-
-const ROLE_COLORS: Record<Role, string> = {
-  Estudiante: "bg-cyan-500",
-  Egresado:   "bg-emerald-500",
-  Empresa:    "bg-violet-500",
-  Colegio:    "bg-amber-500",
-};
-
-const ROLE_EMOJI: Record<Role, string> = {
-  Estudiante: "🎓",
-  Egresado:   "💼",
-  Empresa:    "🏢",
-  Colegio:    "🏫",
-};
+import { Bell, X, LogOut, User as UserIcon } from "lucide-react";
 
 // ── Component ─────────────────────────────────────────────
 
 export default function TopNavBar() {
-  const { role, setRole, notifications, unreadCount, markRead, markAllRead } = useRole();
+  const { notifications, unreadCount, markRead, markAllRead } = useRole();
   const { user, logout } = useAuth();
   const router = useRouter();
 
   // Dropdown open states
-  const [roleDdOpen,   setRoleDdOpen]   = useState(false);
-  const [notifOpen,    setNotifOpen]    = useState(false);
-  const [userDdOpen,   setUserDdOpen]   = useState(false);
+  const [notifOpen,  setNotifOpen]  = useState(false);
+  const [userDdOpen, setUserDdOpen] = useState(false);
 
   // Refs for click-outside detection
-  const roleDdRef = useRef<HTMLDivElement>(null);
   const notifRef  = useRef<HTMLDivElement>(null);
   const userDdRef = useRef<HTMLDivElement>(null);
 
   // Close all dropdowns when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (roleDdRef.current && !roleDdRef.current.contains(e.target as Node)) setRoleDdOpen(false);
       if (notifRef.current  && !notifRef.current.contains(e.target as Node))  setNotifOpen(false);
       if (userDdRef.current && !userDdRef.current.contains(e.target as Node)) setUserDdOpen(false);
     };
@@ -94,47 +72,10 @@ export default function TopNavBar() {
         {/* ── Right controls ── */}
         <div className="flex items-center gap-1.5 sm:gap-2">
 
-          {/* ══ Role Switcher ══════════════════════════════ */}
-          <div ref={roleDdRef} className="relative">
-            <button
-              onClick={() => { setRoleDdOpen(!roleDdOpen); setNotifOpen(false); setUserDdOpen(false); }}
-              className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 px-3 py-1.5 rounded-full border border-slate-200/70 transition-all duration-150"
-            >
-              <span className="text-sm">{ROLE_EMOJI[role]}</span>
-              <span className="text-xs font-semibold text-slate-700 hidden sm:inline">{role}</span>
-              <ChevronDown
-                size={14}
-                className={`text-slate-400 transition-transform duration-200 ${roleDdOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {roleDdOpen && (
-              <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-100/80 py-1.5 z-50 animate-fade-in-down">
-                <p className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  Simular Perfil
-                </p>
-                {ROLES.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => { setRole(r); setRoleDdOpen(false); }}
-                    className={`w-full text-left px-3.5 py-2.5 flex items-center gap-2.5 text-sm transition-colors ${
-                      r === role ? "bg-cyan-50 text-cyan-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className="text-base">{ROLE_EMOJI[r]}</span>
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${ROLE_COLORS[r]}`} />
-                    <span className="flex-1">{r}</span>
-                    {r === role && <Check size={14} className="text-cyan-600" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* ══ Notifications ══════════════════════════════ */}
           <div ref={notifRef} className="relative">
             <button
-              onClick={() => { setNotifOpen(!notifOpen); setRoleDdOpen(false); setUserDdOpen(false); }}
+              onClick={() => { setNotifOpen(!notifOpen); setUserDdOpen(false); }}
               className="relative p-2 hover:bg-slate-100 active:bg-slate-200 rounded-full transition-all duration-150"
             >
               <Bell
@@ -190,7 +131,7 @@ export default function TopNavBar() {
           {/* ══ User Avatar Dropdown ═══════════════════════ */}
           <div ref={userDdRef} className="relative">
             <button
-              onClick={() => { setUserDdOpen(!userDdOpen); setRoleDdOpen(false); setNotifOpen(false); }}
+              onClick={() => { setUserDdOpen(!userDdOpen); setNotifOpen(false); }}
               className="flex items-center gap-2 group"
             >
               {/* Avatar circle — shows photo if available, else initials */}
