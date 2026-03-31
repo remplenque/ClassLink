@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import CursorGlow  from "@/components/layout/CursorGlow";
 import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import { loginSchema } from "@/lib/schemas";
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -28,6 +29,13 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
     setIsSubmitting(true);
 
     const { error: authError } = await login(email.trim(), password);

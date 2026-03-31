@@ -16,7 +16,7 @@ import { usePathname } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import type { Role } from "@/lib/types";
 import {
-  LayoutDashboard, Newspaper, Users, MessageCircle, User, Settings,
+  LayoutDashboard, Newspaper, Users, MessageCircle, User, Settings, Briefcase,
 } from "lucide-react";
 
 // ── Navigation Link Definition ────────────────────────────
@@ -45,6 +45,12 @@ const LINKS = [
     label: "Dashboard",
     icon: LayoutDashboard,
     visibleFor: ["Estudiante", "Egresado", "Empresa", "Colegio"] as Role[],
+  },
+  {
+    path: "/empleos",
+    label: "Empleos",
+    icon: Briefcase,
+    visibleFor: ["Estudiante", "Egresado", "Empresa"] as Role[],
   },
   {
     path: "/messages",

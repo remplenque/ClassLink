@@ -102,6 +102,8 @@ export interface AppNotification {
   read:        boolean;
   /** Which roles should see this notification */
   forRoles:    Role[];
+  /** Notification category/type (e.g. "badge", "message", "job") */
+  type?:       string;
 }
 
 /* ── 4. Social Feed ─────────────────────────────────────── */

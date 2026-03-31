@@ -13,6 +13,8 @@ import type { FeedPost } from "@/lib/types";
 import {
   Heart, MessageCircle, Plus, Search, TrendingUp, Users, Flame, Loader2,
 } from "lucide-react";
+import { postSchema } from "@/lib/schemas";
+import DOMPurify from "isomorphic-dompurify";
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -135,10 +137,18 @@ export default function MuroPage() {
     if (!newTitle.trim() || !user) return;
     setIsPosting(true);
 
+    const parsed = postSchema.safeParse({ title: newTitle, description: newDesc, tag: newTag, category: newCategory });
+    if (!parsed.success) {
+      // show error - for now just return since there's no error state yet
+      setIsPosting(false);
+      return;
+    }
+    const sanitizedDesc = DOMPurify.sanitize(newDesc.trim());
+
     const { error } = await supabase.from("posts").insert({
       title:       newTitle.trim(),
-      description: newDesc.trim(),
-      content:     newDesc.trim(),
+      description: sanitizedDesc,
+      content:     sanitizedDesc,
       author_id:   user.id,
       image:       PLACEHOLDER_IMAGE,
       tag:         newTag,

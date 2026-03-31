@@ -11,6 +11,7 @@ import { useAuth }  from "@/lib/auth-context";
 import CursorGlow   from "@/components/layout/CursorGlow";
 import type { Role } from "@/lib/types";
 import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
+import { registerSchema } from "@/lib/schemas";
 
 const ROLES: { value: Role; label: string; emoji: string }[] = [
   { value: "Estudiante", label: "Estudiante",  emoji: "🎓" },
@@ -42,12 +43,10 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (password !== confirm) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    const parsed = registerSchema.safeParse({ name, email, password, confirmPassword: confirm, role });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      setIsSubmitting(false);
       return;
     }
 
@@ -186,7 +185,7 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mín. 12 car., 1 número, 1 especial"
                   className="w-full px-4 py-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none transition-all"
                 />
                 <button
