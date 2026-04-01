@@ -3,15 +3,15 @@
 // El Muro – Community feed (Supabase-backed)
 // ──────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import Modal      from "@/components/ui/Modal";
 import { supabase } from "@/lib/supabase";
 import { useAuth }  from "@/lib/auth-context";
-import { TALENT_PROFILES } from "@/lib/data";
 import type { FeedPost } from "@/lib/types";
 import {
   Heart, MessageCircle, Plus, Search, TrendingUp, Users, Flame, Loader2,
+  ImagePlus, X, Video, FileImage,
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
@@ -24,21 +24,27 @@ const TAG_FILTERS = [
   "Todos", "Soldadura TIG", "Ebanistería", "Mecatrónica", "Electricidad", "Evento",
 ];
 
-const PLACEHOLDER_IMAGE =
-  "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&h=400&fit=crop";
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi", ".mkv"];
+
+function isVideoUrl(url: string) {
+  if (!url) return false;
+  const lower = url.toLowerCase().split("?")[0];
+  return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
 
 // ── Component ─────────────────────────────────────────────
 
 export default function MuroPage() {
   const { user } = useAuth();
 
-  const [posts,      setPosts]      = useState<FeedPost[]>([]);
-  const [tab,        setTab]        = useState<string>("Todos");
-  const [tagFilter,  setTagFilter]  = useState("Todos");
-  const [search,     setSearch]     = useState("");
-  const [modalOpen,  setModalOpen]  = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [isPosting,  setIsPosting]  = useState(false);
+  const [posts,       setPosts]       = useState<FeedPost[]>([]);
+  const [tab,         setTab]         = useState<string>("Todos");
+  const [tagFilter,   setTagFilter]   = useState("Todos");
+  const [search,      setSearch]      = useState("");
+  const [modalOpen,   setModalOpen]   = useState(false);
+  const [isFetching,  setIsFetching]  = useState(true);
+  const [isPosting,   setIsPosting]   = useState(false);
+  const [postError,   setPostError]   = useState<string | null>(null);
 
   // New post form fields
   const [newTitle,    setNewTitle]    = useState("");
@@ -46,7 +52,16 @@ export default function MuroPage() {
   const [newTag,      setNewTag]      = useState("Mecatrónica");
   const [newCategory, setNewCategory] = useState<"publicacion" | "portafolio">("publicacion");
 
-  // ── Fetch posts from Supabase ──────────────────────────
+  // Media upload for new post
+  const [mediaFile,    setMediaFile]    = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [isVideo,      setIsVideo]      = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Active members sidebar (real data)
+  const [activeMembers, setActiveMembers] = useState<any[]>([]);
+
+  // ── Fetch posts ────────────────────────────────────────
 
   const fetchPosts = useCallback(async () => {
     setIsFetching(true);
@@ -60,12 +75,8 @@ export default function MuroPage() {
       `)
       .order("created_at", { ascending: false });
 
-    if (error || !data) {
-      setIsFetching(false);
-      return;
-    }
+    if (error || !data) { setIsFetching(false); return; }
 
-    // Fetch which posts the current user has liked
     let likedIds = new Set<string>();
     if (user?.id) {
       const { data: likes } = await supabase
@@ -97,19 +108,70 @@ export default function MuroPage() {
     setIsFetching(false);
   }, [user?.id]);
 
+  // ── Fetch active members ───────────────────────────────
+
+  const fetchMembers = useCallback(async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, avatar, specialty, role")
+      .in("role", ["Estudiante", "Egresado", "Empresa"])
+      .limit(5);
+    setActiveMembers(data ?? []);
+  }, []);
+
   useEffect(() => {
     fetchPosts();
-  }, [fetchPosts]);
+    fetchMembers();
+  }, [fetchPosts, fetchMembers]);
+
+  // ── Media selection ────────────────────────────────────
+
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 50 * 1024 * 1024; // 50 MB for videos, 5 MB for images enforced below
+    const isVideoFile = file.type.startsWith("video/");
+
+    if (!isVideoFile && file.size > 5 * 1024 * 1024) {
+      setPostError("Las imágenes deben ser menores a 5MB.");
+      return;
+    }
+    if (isVideoFile && file.size > maxSize) {
+      setPostError("Los videos deben ser menores a 50MB.");
+      return;
+    }
+
+    const allowedImages = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const allowedVideos = ["video/mp4", "video/webm", "video/quicktime"];
+
+    if (!allowedImages.includes(file.type) && !allowedVideos.includes(file.type)) {
+      setPostError("Formato no soportado. Usa JPEG, PNG, WebP, GIF, MP4, WebM o MOV.");
+      return;
+    }
+
+    setPostError(null);
+    setMediaFile(file);
+    setIsVideo(isVideoFile);
+    const url = URL.createObjectURL(file);
+    setMediaPreview(url);
+  };
+
+  const clearMedia = () => {
+    setMediaFile(null);
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaPreview(null);
+    setIsVideo(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   // ── Like / unlike ──────────────────────────────────────
 
   const toggleLike = async (postId: string) => {
     if (!user) return;
-
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
-    // Optimistic update
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -119,15 +181,10 @@ export default function MuroPage() {
     );
 
     if (post.liked) {
-      await supabase
-        .from("post_likes")
-        .delete()
-        .eq("post_id", postId)
-        .eq("user_id", user.id);
+      await supabase.from("post_likes").delete()
+        .eq("post_id", postId).eq("user_id", user.id);
     } else {
-      await supabase
-        .from("post_likes")
-        .insert({ post_id: postId, user_id: user.id });
+      await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
     }
   };
 
@@ -136,32 +193,68 @@ export default function MuroPage() {
   const handleCreate = async () => {
     if (!newTitle.trim() || !user) return;
     setIsPosting(true);
+    setPostError(null);
 
-    const parsed = postSchema.safeParse({ title: newTitle, description: newDesc, tag: newTag, category: newCategory });
+    const parsed = postSchema.safeParse({
+      title: newTitle, description: newDesc, tag: newTag, category: newCategory,
+    });
     if (!parsed.success) {
-      // show error - for now just return since there's no error state yet
+      setPostError(parsed.error.issues[0]?.message ?? "Error de validación");
       setIsPosting(false);
       return;
     }
+
     const sanitizedDesc = DOMPurify.sanitize(newDesc.trim());
+
+    // Upload media to Supabase Storage if provided
+    let mediaUrl = "";
+    if (mediaFile && user.id) {
+      const ext  = mediaFile.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: storageErr } = await supabase.storage
+        .from("post-media")
+        .upload(path, mediaFile, { upsert: false });
+
+      if (storageErr) {
+        // Non-fatal: post without media if bucket doesn't exist or upload fails
+        console.warn("Media upload failed:", storageErr.message);
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from("post-media")
+          .getPublicUrl(path);
+        mediaUrl = publicUrl;
+      }
+    }
 
     const { error } = await supabase.from("posts").insert({
       title:       newTitle.trim(),
       description: sanitizedDesc,
       content:     sanitizedDesc,
       author_id:   user.id,
-      image:       PLACEHOLDER_IMAGE,
+      image:       mediaUrl || null,
       tag:         newTag,
       category:    newCategory,
     });
 
-    if (!error) {
-      setNewTitle("");
-      setNewDesc("");
-      setModalOpen(false);
-      await fetchPosts();
+    if (error) {
+      setPostError(error.message);
+      setIsPosting(false);
+      return;
     }
+
+    // Reset form
+    setNewTitle("");
+    setNewDesc("");
+    clearMedia();
+    setModalOpen(false);
+    await fetchPosts();
     setIsPosting(false);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setPostError(null);
+    clearMedia();
   };
 
   // ── Filtering ──────────────────────────────────────────
@@ -179,15 +272,7 @@ export default function MuroPage() {
     return matchTab && matchTag && matchSearch;
   });
 
-  const trendingTags = [
-    { name: "Mecatrónica",   posts: 24 },
-    { name: "Soldadura TIG", posts: 18 },
-    { name: "Electricidad",  posts: 15 },
-    { name: "Ebanistería",   posts: 11 },
-    { name: "Evento",        posts:  8 },
-  ];
-
-  // ── Render ────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────
 
   return (
     <PageLayout>
@@ -265,7 +350,6 @@ export default function MuroPage() {
           {/* Feed Column */}
           <div className="lg:col-span-2 space-y-4">
 
-            {/* Loading state */}
             {isFetching && (
               <div className="flex justify-center py-20">
                 <Loader2 size={32} className="animate-spin text-cyan-400" />
@@ -282,13 +366,23 @@ export default function MuroPage() {
                   animate-fade-in-up stagger-${Math.min(i + 1, 6)}
                 `}
               >
+                {/* Media: image or video */}
                 {post.image && (
-                  <div className="aspect-[2.2/1] relative overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                    />
+                  <div className="aspect-[2.2/1] relative overflow-hidden bg-slate-100">
+                    {isVideoUrl(post.image) ? (
+                      <video
+                        src={post.image}
+                        controls
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={post.image}
+                        alt={post.title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                    )}
                     <div className="absolute top-3 right-3">
                       <span className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold text-cyan-700">
                         {post.tag}
@@ -345,6 +439,11 @@ export default function MuroPage() {
                     <span className="flex items-center gap-1.5 text-sm text-slate-400 font-medium">
                       <MessageCircle size={18} /> {post.comments}
                     </span>
+                    {!post.image && (
+                      <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
+                        {post.tag}
+                      </span>
+                    )}
                   </div>
                 </div>
               </article>
@@ -375,44 +474,56 @@ export default function MuroPage() {
                 <span className="font-bold text-sm">Tendencias</span>
               </div>
               <div className="space-y-1">
-                {trendingTags.map((tag, i) => (
-                  <button
-                    key={tag.name}
-                    onClick={() => setTagFilter(tag.name)}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left group"
-                  >
-                    <span className="text-xs font-bold text-slate-300 w-5">#{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold group-hover:text-cyan-700 transition-colors">
-                        {tag.name}
-                      </p>
-                      <p className="text-[10px] text-slate-400">{tag.posts} publicaciones</p>
-                    </div>
-                  </button>
-                ))}
+                {TAG_FILTERS.filter((t) => t !== "Todos").map((tag, i) => {
+                  const count = posts.filter((p) => p.tag === tag).length;
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => setTagFilter(tag)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left group"
+                    >
+                      <span className="text-xs font-bold text-slate-300 w-5">#{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold group-hover:text-cyan-700 transition-colors">
+                          {tag}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{count} publicaciones</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 animate-fade-in-up stagger-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Users size={16} className="text-violet-500" />
-                <span className="font-bold text-sm">Miembros Activos</span>
-              </div>
-              <div className="space-y-2.5">
-                {TALENT_PROFILES.slice(0, 5).map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    <img src={t.avatar} alt={t.name} className="w-8 h-8 rounded-lg object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{t.name}</p>
-                      <p className="text-[10px] text-slate-400">{t.specialty}</p>
+            {/* Active members — real data from DB */}
+            {activeMembers.length > 0 && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60 animate-fade-in-up stagger-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users size={16} className="text-violet-500" />
+                  <span className="font-bold text-sm">Miembros</span>
+                </div>
+                <div className="space-y-2.5">
+                  {activeMembers.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      {m.avatar ? (
+                        <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
+                          {m.name?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate">{m.name}</p>
+                        <p className="text-[10px] text-slate-400">{m.specialty ?? m.role}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl p-5 text-white animate-fade-in-up stagger-3">
               <Flame size={24} className="mb-2 opacity-80" />
@@ -424,13 +535,17 @@ export default function MuroPage() {
         </div>
       </div>
 
-      {/* Create Post Modal */}
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Nueva Publicación"
-      >
+      {/* ── Create Post Modal ── */}
+      <Modal open={modalOpen} onClose={handleModalClose} title="Nueva Publicación">
         <div className="space-y-4">
+
+          {postError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              {postError}
+            </div>
+          )}
+
+          {/* Title */}
           <div>
             <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Título</label>
             <input
@@ -442,6 +557,7 @@ export default function MuroPage() {
             />
           </div>
 
+          {/* Description */}
           <div>
             <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Descripción</label>
             <textarea
@@ -453,29 +569,85 @@ export default function MuroPage() {
             />
           </div>
 
+          {/* Media Upload */}
           <div>
-            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Categoría</label>
-            <select
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value as "publicacion" | "portafolio")}
-              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
-            >
-              <option value="publicacion">Publicación</option>
-              <option value="portafolio">Portafolio</option>
-            </select>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">
+              Imagen o Video (opcional)
+            </label>
+
+            {mediaPreview ? (
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                {isVideo ? (
+                  <video
+                    src={mediaPreview}
+                    controls
+                    className="w-full max-h-48 object-cover"
+                  />
+                ) : (
+                  <img
+                    src={mediaPreview}
+                    alt="Vista previa"
+                    className="w-full max-h-48 object-cover"
+                  />
+                )}
+                <button
+                  onClick={clearMedia}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                >
+                  <X size={14} className="text-white" />
+                </button>
+                <div className="absolute bottom-2 left-2">
+                  <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                    {isVideo ? <Video size={10} /> : <FileImage size={10} />}
+                    {isVideo ? "Video" : "Imagen"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-28 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors gap-2">
+                <ImagePlus size={22} className="text-slate-300" />
+                <span className="text-xs text-slate-400">
+                  Clic para subir imagen o video
+                </span>
+                <span className="text-[10px] text-slate-300">
+                  JPEG, PNG, WebP, GIF · MP4, WebM, MOV
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={handleMediaSelect}
+                />
+              </label>
+            )}
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Etiqueta</label>
-            <select
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
-            >
-              {TAG_FILTERS.filter((t) => t !== "Todos").map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+          {/* Category */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Categoría</label>
+              <select
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value as "publicacion" | "portafolio")}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
+              >
+                <option value="publicacion">Publicación</option>
+                <option value="portafolio">Portafolio</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Etiqueta</label>
+              <select
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
+              >
+                {TAG_FILTERS.filter((t) => t !== "Todos").map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button
@@ -484,9 +656,7 @@ export default function MuroPage() {
             className="w-full bg-cyan-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-cyan-700 active:bg-cyan-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors btn-press flex items-center justify-center gap-2"
           >
             {isPosting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Publicando…
-              </>
+              <><Loader2 size={16} className="animate-spin" /> Publicando…</>
             ) : (
               "Publicar"
             )}
