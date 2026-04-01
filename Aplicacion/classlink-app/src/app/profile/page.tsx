@@ -245,7 +245,7 @@ export default function ProfilePage() {
 
   return (
     <PageLayout>
-      <div className="max-w-6xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="w-full px-4 md:px-6 lg:px-10 py-6 space-y-6">
 
         {/* ── Profile Header Card ──────────────────────────────────────────
             Desktop layout: avatar centered on banner bottom edge (absolute),
@@ -262,7 +262,7 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl border border-slate-200/60 animate-fade-in-up relative">
 
           {/* Cover Banner */}
-          <div className={`h-44 md:h-60 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden relative`}>
+          <div className={`h-44 md:h-80 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden relative`}>
             <div className="absolute inset-0 hero-pattern opacity-20" />
             <button
               onClick={openEdit}
@@ -273,17 +273,19 @@ export default function ProfilePage() {
           </div>
 
           {/* Avatar — centered on the banner's bottom edge (absolute) */}
-          <div className="absolute left-6 top-32 md:left-8 md:top-44 z-10">
+          {/* top-32 mobile: banner=176px, avatar=96px, center=128+48=176 ✓
+              md:top-60 desktop: banner=320px, avatar=160px, center=240+80=320 ✓ */}
+          <div className="absolute left-6 top-32 md:left-10 md:top-60 z-10">
             <div className="relative group">
               {profile.avatar ? (
                 <img
                   src={profile.avatar}
                   alt={profile.name}
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-2xl border-4 border-white object-cover shadow-lg"
+                  className="w-24 h-24 md:w-40 md:h-40 rounded-2xl border-4 border-white object-cover shadow-xl"
                 />
               ) : (
-                <div className={`w-24 h-24 md:w-32 md:h-32 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-lg`}>
-                  <span className="text-white font-black text-3xl md:text-4xl">
+                <div className={`w-24 h-24 md:w-40 md:h-40 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-xl`}>
+                  <span className="text-white font-black text-3xl md:text-5xl">
                     {profile.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -305,22 +307,22 @@ export default function ProfilePage() {
           </div>
 
           {/* Name / title / chips
-              Mobile : pt-14 clears the avatar bottom (avatar bottom = 128+96=224; banner=176; protrudes 48px)
-              Desktop: pt-8 pl-48 — text starts beside avatar at banner-bottom level */}
-          <div className="px-6 pb-6 pt-14 md:pt-8 md:pl-48">
-            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight tracking-tight">
+              Mobile : pt-14 clears avatar (avatar bottom = 224px; banner = 176px; protrudes 48px)
+              Desktop: pt-8 pl-56 — text beside avatar (avatar right = 200px, pl=224px, 24px gap) */}
+          <div className="px-8 pb-8 pt-14 md:pt-8 md:pl-56">
+            <h1 className="text-2xl md:text-4xl font-extrabold leading-tight tracking-tight">
               {profile.name}
             </h1>
             {profile.title && (
-              <p className="text-sm md:text-base text-slate-500 mt-1">{profile.title}</p>
+              <p className="text-sm md:text-lg text-slate-500 mt-1.5">{profile.title}</p>
             )}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm md:text-base text-slate-400">
               {profile.location && (
-                <span className="flex items-center gap-1.5"><MapPin size={14} />{profile.location}</span>
+                <span className="flex items-center gap-1.5"><MapPin size={16} />{profile.location}</span>
               )}
-              <span className="flex items-center gap-1.5"><Mail size={14} />{profile.email}</span>
+              <span className="flex items-center gap-1.5"><Mail size={16} />{profile.email}</span>
               {isStudent && profile.specialty && (
-                <span className="flex items-center gap-1.5"><GraduationCap size={14} />{profile.specialty}</span>
+                <span className="flex items-center gap-1.5"><GraduationCap size={16} />{profile.specialty}</span>
               )}
               {isCompany && profile.website && (
                 <a
@@ -329,18 +331,18 @@ export default function ProfilePage() {
                   rel="noopener noreferrer"
                   className={`flex items-center gap-1.5 ${accentText} hover:underline`}
                 >
-                  <Globe size={14} />{profile.website}
+                  <Globe size={16} />{profile.website}
                 </a>
               )}
               {isSchool && profile.school_name && (
-                <span className="flex items-center gap-1.5"><Building2 size={14} />{profile.school_name}</span>
+                <span className="flex items-center gap-1.5"><Building2 size={16} />{profile.school_name}</span>
               )}
             </div>
           </div>
         </div>
 
         {/* ── Body: Persistent left sidebar + Tabbed main content ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-in-up stagger-2">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 animate-fade-in-up stagger-2">
 
           {/* ── Left Sidebar (always visible, not tab-dependent) ── */}
           <div className="space-y-4">
