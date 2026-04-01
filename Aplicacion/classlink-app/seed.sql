@@ -6,6 +6,43 @@
 --   Safe to re-run: uses ON CONFLICT DO NOTHING / DO UPDATE
 -- ═══════════════════════════════════════════════════════════════════
 
+-- ─────────────────────────────────────────────────────────────────
+-- SECTION 0 – ENSURE ALL COLUMNS EXIST ON profiles
+-- Safe to run even if columns already exist (IF NOT EXISTS).
+-- ─────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS school_id        UUID        REFERENCES profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS specialty        TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS title            TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS xp              INT         NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS level           INT         NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS streak          INT         NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS gpa             NUMERIC(5,2),
+  ADD COLUMN IF NOT EXISTS availability    TEXT        NOT NULL DEFAULT 'Disponible',
+  ADD COLUMN IF NOT EXISTS years_experience INT        NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS company_name    TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS industry        TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS employee_count  TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS website         TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS open_positions  INT         NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS school_name     TEXT        NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS student_count   INT,
+  ADD COLUMN IF NOT EXISTS alliance_count  INT         NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS employability_rate NUMERIC(5,2);
+
+-- Add the availability CHECK constraint only if it doesn't already exist
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'profiles_availability_check' AND conrelid = 'public.profiles'::regclass
+  ) THEN
+    ALTER TABLE public.profiles
+      ADD CONSTRAINT profiles_availability_check
+      CHECK (availability IN ('Disponible','En prácticas','No disponible'));
+  END IF;
+END $$;
+
 -- Disable FK checks and triggers so we can insert profiles
 -- without needing real auth.users rows behind each one.
 SET session_replication_role = 'replica';
