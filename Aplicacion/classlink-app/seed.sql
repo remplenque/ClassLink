@@ -43,6 +43,289 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- ─────────────────────────────────────────────────────────────────
+-- SECTION 0.5 – CREATE ALL TABLES (IF NOT EXISTS)
+-- Mirrors supabase_schema.sql so seed.sql is fully self-contained.
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.skills (
+  id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name     TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL DEFAULT 'General'
+);
+
+CREATE TABLE IF NOT EXISTS public.user_skills (
+  user_id  UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  skill_id UUID NOT NULL REFERENCES public.skills(id)   ON DELETE CASCADE,
+  PRIMARY KEY (user_id, skill_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.certifications (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name        TEXT        NOT NULL,
+  issued_by   TEXT        NOT NULL DEFAULT '',
+  issued_date DATE,
+  expiry_date DATE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.portfolio_items (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title       TEXT        NOT NULL,
+  description TEXT        NOT NULL DEFAULT '',
+  image       TEXT        NOT NULL DEFAULT '',
+  link        TEXT        NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.portfolio_tags (
+  item_id UUID NOT NULL REFERENCES public.portfolio_items(id) ON DELETE CASCADE,
+  tag     TEXT NOT NULL,
+  PRIMARY KEY (item_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS public.badges (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL UNIQUE,
+  icon        TEXT NOT NULL DEFAULT 'award',
+  description TEXT NOT NULL DEFAULT '',
+  requirement TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS public.user_badges (
+  id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id   UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  badge_id  UUID        NOT NULL REFERENCES public.badges(id)   ON DELETE CASCADE,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, badge_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.xp_events (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  amount     INT         NOT NULL,
+  reason     TEXT        NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.posts (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  title          TEXT        NOT NULL,
+  description    TEXT        NOT NULL DEFAULT '',
+  content        TEXT        NOT NULL DEFAULT '',
+  author_id      UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  image          TEXT        NOT NULL DEFAULT '',
+  tag            TEXT        NOT NULL DEFAULT '',
+  likes_count    INT         NOT NULL DEFAULT 0,
+  comments_count INT         NOT NULL DEFAULT 0,
+  views_count    INT         NOT NULL DEFAULT 0,
+  category       TEXT        NOT NULL DEFAULT 'publicacion'
+                             CHECK (category IN ('publicacion','portafolio')),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.post_likes (
+  post_id    UUID NOT NULL REFERENCES public.posts(id)    ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.post_comments (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id    UUID        NOT NULL REFERENCES public.posts(id)    ON DELETE CASCADE,
+  author_id  UUID        REFERENCES public.profiles(id)          ON DELETE SET NULL,
+  content    TEXT        NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.job_postings (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id   UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title        TEXT        NOT NULL,
+  description  TEXT        NOT NULL DEFAULT '',
+  specialty    TEXT        NOT NULL DEFAULT '',
+  location     TEXT        NOT NULL DEFAULT '',
+  type         TEXT        NOT NULL DEFAULT 'practicas'
+                           CHECK (type IN ('practicas','empleo','proyecto')),
+  slots        INT         NOT NULL DEFAULT 1,
+  is_open      BOOLEAN     NOT NULL DEFAULT TRUE,
+  requirements TEXT        NOT NULL DEFAULT '',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at   TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS public.job_applications (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id       UUID        NOT NULL REFERENCES public.job_postings(id) ON DELETE CASCADE,
+  student_id   UUID        NOT NULL REFERENCES public.profiles(id)     ON DELETE CASCADE,
+  status       TEXT        NOT NULL DEFAULT 'pendiente'
+                           CHECK (status IN ('pendiente','en_revision','aceptado','rechazado')),
+  cover_letter TEXT        NOT NULL DEFAULT '',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (job_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.internship_requests (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id  UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  school_id   UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title       TEXT        NOT NULL,
+  description TEXT        NOT NULL DEFAULT '',
+  specialty   TEXT        NOT NULL DEFAULT '',
+  slots       INT         NOT NULL DEFAULT 1,
+  status      TEXT        NOT NULL DEFAULT 'pendiente'
+                          CHECK (status IN ('pendiente','aprobado','rechazado')),
+  urgent      BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.alliances (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  school_id  UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  status     TEXT        NOT NULL DEFAULT 'pendiente'
+                         CHECK (status IN ('pendiente','activa','inactiva')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (company_id, school_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.conversations (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_a   UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  participant_b   UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  last_message_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (participant_a, participant_b)
+);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID        NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id       UUID        NOT NULL REFERENCES public.profiles(id)      ON DELETE CASCADE,
+  content         TEXT        NOT NULL,
+  read            BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title      TEXT        NOT NULL,
+  body       TEXT        NOT NULL DEFAULT '',
+  type       TEXT        NOT NULL DEFAULT 'info'
+                         CHECK (type IN ('info','badge','message','application','alliance','practica')),
+  read       BOOLEAN     NOT NULL DEFAULT FALSE,
+  link       TEXT        NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.profile_views (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  viewer_id  UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  viewed_id  UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS on all new tables
+ALTER TABLE public.skills             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_skills        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certifications     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portfolio_items    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portfolio_tags     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.badges             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_badges        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.xp_events          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.posts              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_likes         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_comments      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.job_postings       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.job_applications   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.internship_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.alliances          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversations      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_views      ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies (drop first so re-runs are safe)
+DO $$ DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public' LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+  END LOOP;
+END $$;
+
+CREATE POLICY "skills_select"         ON public.skills            FOR SELECT USING (true);
+CREATE POLICY "user_skills_select"    ON public.user_skills       FOR SELECT USING (true);
+CREATE POLICY "user_skills_insert"    ON public.user_skills       FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "user_skills_delete"    ON public.user_skills       FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "certs_select"          ON public.certifications    FOR SELECT USING (true);
+CREATE POLICY "certs_insert"          ON public.certifications    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "certs_update"          ON public.certifications    FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "certs_delete"          ON public.certifications    FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "portfolio_select"      ON public.portfolio_items   FOR SELECT USING (true);
+CREATE POLICY "portfolio_insert"      ON public.portfolio_items   FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "portfolio_update"      ON public.portfolio_items   FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "portfolio_delete"      ON public.portfolio_items   FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "portfolio_tags_select" ON public.portfolio_tags    FOR SELECT USING (true);
+CREATE POLICY "portfolio_tags_insert" ON public.portfolio_tags    FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM public.portfolio_items WHERE id = item_id AND user_id = auth.uid()));
+CREATE POLICY "portfolio_tags_delete" ON public.portfolio_tags    FOR DELETE
+  USING (EXISTS (SELECT 1 FROM public.portfolio_items WHERE id = item_id AND user_id = auth.uid()));
+CREATE POLICY "badges_select"         ON public.badges            FOR SELECT USING (true);
+CREATE POLICY "user_badges_select"    ON public.user_badges       FOR SELECT USING (true);
+CREATE POLICY "xp_events_select"      ON public.xp_events         FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "posts_select"          ON public.posts             FOR SELECT USING (true);
+CREATE POLICY "posts_insert"          ON public.posts             FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "posts_update"          ON public.posts             FOR UPDATE USING (auth.uid() = author_id);
+CREATE POLICY "posts_delete"          ON public.posts             FOR DELETE USING (auth.uid() = author_id);
+CREATE POLICY "likes_select"          ON public.post_likes        FOR SELECT USING (true);
+CREATE POLICY "likes_insert"          ON public.post_likes        FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "likes_delete"          ON public.post_likes        FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "comments_select"       ON public.post_comments     FOR SELECT USING (true);
+CREATE POLICY "comments_insert"       ON public.post_comments     FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "comments_delete"       ON public.post_comments     FOR DELETE USING (auth.uid() = author_id);
+CREATE POLICY "jobs_select"           ON public.job_postings      FOR SELECT USING (true);
+CREATE POLICY "jobs_insert"           ON public.job_postings      FOR INSERT WITH CHECK (auth.uid() = company_id);
+CREATE POLICY "jobs_update"           ON public.job_postings      FOR UPDATE USING (auth.uid() = company_id);
+CREATE POLICY "jobs_delete"           ON public.job_postings      FOR DELETE USING (auth.uid() = company_id);
+CREATE POLICY "applications_select"   ON public.job_applications  FOR SELECT
+  USING (auth.uid() = student_id OR
+         EXISTS (SELECT 1 FROM public.job_postings WHERE id = job_id AND company_id = auth.uid()));
+CREATE POLICY "applications_insert"   ON public.job_applications  FOR INSERT WITH CHECK (auth.uid() = student_id);
+CREATE POLICY "applications_update"   ON public.job_applications  FOR UPDATE
+  USING (auth.uid() = student_id OR
+         EXISTS (SELECT 1 FROM public.job_postings WHERE id = job_id AND company_id = auth.uid()));
+CREATE POLICY "internship_select"     ON public.internship_requests FOR SELECT
+  USING (auth.uid() = company_id OR auth.uid() = school_id);
+CREATE POLICY "internship_insert"     ON public.internship_requests FOR INSERT WITH CHECK (auth.uid() = company_id);
+CREATE POLICY "internship_update"     ON public.internship_requests FOR UPDATE
+  USING (auth.uid() = school_id OR auth.uid() = company_id);
+CREATE POLICY "alliances_select"      ON public.alliances         FOR SELECT USING (true);
+CREATE POLICY "alliances_insert"      ON public.alliances         FOR INSERT WITH CHECK (auth.uid() = company_id);
+CREATE POLICY "alliances_update"      ON public.alliances         FOR UPDATE
+  USING (auth.uid() = school_id OR auth.uid() = company_id);
+CREATE POLICY "conv_select"           ON public.conversations     FOR SELECT
+  USING (auth.uid() = participant_a OR auth.uid() = participant_b);
+CREATE POLICY "conv_insert"           ON public.conversations     FOR INSERT
+  WITH CHECK (auth.uid() = participant_a OR auth.uid() = participant_b);
+CREATE POLICY "msg_select"            ON public.messages          FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.conversations c
+    WHERE c.id = conversation_id AND (c.participant_a = auth.uid() OR c.participant_b = auth.uid())));
+CREATE POLICY "msg_insert"            ON public.messages          FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "msg_update"            ON public.messages          FOR UPDATE USING (auth.uid() = sender_id);
+CREATE POLICY "notif_select"          ON public.notifications     FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "notif_update"          ON public.notifications     FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "pv_select"             ON public.profile_views     FOR SELECT
+  USING (auth.uid() = viewer_id OR auth.uid() = viewed_id);
+CREATE POLICY "pv_insert"             ON public.profile_views     FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
 -- Disable FK checks and triggers so we can insert profiles
 -- without needing real auth.users rows behind each one.
 SET session_replication_role = 'replica';
