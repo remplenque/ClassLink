@@ -275,11 +275,20 @@ export default function ProfilePage() {
     <PageLayout>
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
 
-        {/* ── Profile Header Card ── */}
-        <div className="bg-white rounded-2xl border border-slate-200/60 animate-fade-in-up overflow-visible">
+        {/* ── Profile Header Card ──
+            Layout: tall banner + avatar absolutely straddling the banner/content
+            boundary (centered on the bottom edge) + name/info to the right.
+
+            Measurements:
+            - Banner: h-44 = 176px
+            - Avatar: w-24 h-24 = 96px, top-32 = 128px → half (48px) inside banner, half below
+            - Desktop: content pl-36 (144px) = 24px gap right of avatar (right edge = 120px)
+            - Mobile:  content pt-14 (56px)  = 8px gap below avatar (bottom = 224px, content at 232px)
+        ── */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 animate-fade-in-up relative">
 
           {/* Cover Banner */}
-          <div className={`relative h-36 md:h-44 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden`}>
+          <div className={`h-44 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden relative`}>
             <div className="absolute inset-0 hero-pattern opacity-20" />
             <button
               onClick={openEdit}
@@ -289,79 +298,78 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Avatar + Info below banner */}
-          <div className="px-5 pb-5">
-            {/* Avatar row — negative margin overlaps banner bottom */}
-            <div className="-mt-10 md:-mt-12 mb-4 flex items-end gap-4">
-              {/* Avatar with hover-to-upload */}
-              <div className="relative group z-10 shrink-0">
-                {profile.avatar ? (
-                  <img
-                    src={profile.avatar}
-                    alt={profile.name}
-                    className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 border-white object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-lg`}>
-                    <span className="text-white font-black text-3xl">
-                      {profile.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  {uploadingAvatar
-                    ? <Loader2 size={20} className="text-white animate-spin" />
-                    : <Camera size={20} className="text-white" />
-                  }
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                    disabled={uploadingAvatar}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Name, title, quick info */}
-            <div>
-              <h1 className="text-xl md:text-2xl font-extrabold leading-tight">
-                {profile.name}
-              </h1>
-              {profile.title && (
-                <p className="text-sm text-slate-500 mt-0.5">{profile.title}</p>
+          {/* Avatar — absolute, centered on banner bottom edge */}
+          <div className="absolute left-6 top-32 z-10">
+            <div className="relative group">
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-24 h-24 rounded-2xl border-4 border-white object-cover shadow-lg"
+                />
+              ) : (
+                <div className={`w-24 h-24 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-lg`}>
+                  <span className="text-white font-black text-3xl">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
-                {profile.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin size={11} />{profile.location}
-                  </span>
-                )}
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                {uploadingAvatar
+                  ? <Loader2 size={20} className="text-white animate-spin" />
+                  : <Camera size={20} className="text-white" />
+                }
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Name, title, quick info
+              Mobile:  pt-14 clears the avatar bottom (avatar bottom = 128+96=224px from card top;
+                       banner bottom = 176px; so avatar protrudes 48px → pt-12 + some gap = pt-14)
+              Desktop: pt-5 + pl-36 puts text beside the avatar to the right */}
+          <div className="px-6 pb-5 pt-14 md:pt-5 md:pl-36">
+            <h1 className="text-xl md:text-2xl font-extrabold leading-tight">
+              {profile.name}
+            </h1>
+            {profile.title && (
+              <p className="text-sm text-slate-500 mt-0.5">{profile.title}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
+              {profile.location && (
                 <span className="flex items-center gap-1">
-                  <Mail size={11} />{profile.email}
+                  <MapPin size={11} />{profile.location}
                 </span>
-                {isStudent && profile.specialty && (
-                  <span className="flex items-center gap-1">
-                    <GraduationCap size={11} />{profile.specialty}
-                  </span>
-                )}
-                {isCompany && profile.website && (
-                  <a
-                    href={`https://${profile.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-1 ${accentText} hover:underline`}
-                  >
-                    <Globe size={11} />{profile.website}
-                  </a>
-                )}
-                {isSchool && profile.school_name && (
-                  <span className="flex items-center gap-1">
-                    <Building2 size={11} />{profile.school_name}
-                  </span>
-                )}
-              </div>
+              )}
+              <span className="flex items-center gap-1">
+                <Mail size={11} />{profile.email}
+              </span>
+              {isStudent && profile.specialty && (
+                <span className="flex items-center gap-1">
+                  <GraduationCap size={11} />{profile.specialty}
+                </span>
+              )}
+              {isCompany && profile.website && (
+                <a
+                  href={`https://${profile.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1 ${accentText} hover:underline`}
+                >
+                  <Globe size={11} />{profile.website}
+                </a>
+              )}
+              {isSchool && profile.school_name && (
+                <span className="flex items-center gap-1">
+                  <Building2 size={11} />{profile.school_name}
+                </span>
+              )}
             </div>
           </div>
         </div>

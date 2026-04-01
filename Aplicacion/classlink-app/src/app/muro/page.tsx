@@ -216,14 +216,19 @@ export default function MuroPage() {
         .upload(path, mediaFile, { upsert: false });
 
       if (storageErr) {
-        // Non-fatal: post without media if bucket doesn't exist or upload fails
-        console.warn("Media upload failed:", storageErr.message);
-      } else {
-        const { data: { publicUrl } } = supabase.storage
-          .from("post-media")
-          .getPublicUrl(path);
-        mediaUrl = publicUrl;
+        setPostError(
+          storageErr.message.includes("not found") || storageErr.message.includes("Bucket")
+            ? "El bucket 'post-media' no existe en Supabase Storage. Créalo como bucket público en tu panel de Supabase."
+            : `No se pudo subir el archivo: ${storageErr.message}`
+        );
+        setIsPosting(false);
+        return;
       }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("post-media")
+        .getPublicUrl(path);
+      mediaUrl = publicUrl;
     }
 
     const { error } = await supabase.from("posts").insert({
