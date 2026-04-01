@@ -73,7 +73,7 @@ export default function DashboardEgresado() {
 
       setPeers(peersRes.data ?? []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [user?.id]);
 
   if (loading) {

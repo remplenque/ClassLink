@@ -50,7 +50,7 @@ export default function DashboardEmpresa() {
       if (pRes.data) setProfile(pRes.data as DashProfile);
       setTalent(tRes.data ?? []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [user?.id]);
 
   if (loading) {

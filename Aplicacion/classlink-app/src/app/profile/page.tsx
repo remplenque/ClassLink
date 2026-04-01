@@ -275,13 +275,11 @@ export default function ProfilePage() {
     <PageLayout>
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
 
-        {/* ── Profile Header: Banner + Avatar as ONE unit ──────────────
-            Wrapped together so `space-y-5`'s margin-top doesn't fight
-            the negative margin on the avatar row. */}
-        <div className="animate-fade-in-up">
+        {/* ── Profile Header Card ── */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 animate-fade-in-up overflow-visible">
 
           {/* Cover Banner */}
-          <div className={`relative h-40 md:h-48 rounded-2xl bg-gradient-to-r ${gradientClass} overflow-hidden`}>
+          <div className={`relative h-36 md:h-44 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden`}>
             <div className="absolute inset-0 hero-pattern opacity-20" />
             <button
               onClick={openEdit}
@@ -291,47 +289,50 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Avatar + Name — negative margin overlaps the banner bottom */}
-          <div className="-mt-12 md:-mt-14 px-5 flex items-end gap-4">
-            {/* Avatar with hover-to-upload */}
-            <div className="relative group z-10 shrink-0">
-              {profile.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={profile.name}
-                  className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-white object-cover shadow-lg"
-                />
-              ) : (
-                <div className={`w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-lg`}>
-                  <span className="text-white font-black text-3xl">
-                    {profile.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                {uploadingAvatar
-                  ? <Loader2 size={20} className="text-white animate-spin" />
-                  : <Camera size={20} className="text-white" />
-                }
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                  disabled={uploadingAvatar}
-                />
-              </label>
+          {/* Avatar + Info below banner */}
+          <div className="px-5 pb-5">
+            {/* Avatar row — negative margin overlaps banner bottom */}
+            <div className="-mt-10 md:-mt-12 mb-4 flex items-end gap-4">
+              {/* Avatar with hover-to-upload */}
+              <div className="relative group z-10 shrink-0">
+                {profile.avatar ? (
+                  <img
+                    src={profile.avatar}
+                    alt={profile.name}
+                    className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 border-white object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 border-white bg-gradient-to-br ${gradientClass} flex items-center justify-center shadow-lg`}>
+                    <span className="text-white font-black text-3xl">
+                      {profile.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  {uploadingAvatar
+                    ? <Loader2 size={20} className="text-white animate-spin" />
+                    : <Camera size={20} className="text-white" />
+                  }
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Name, title, quick info */}
-            <div className="flex-1 min-w-0 pb-2 pt-14 md:pt-16">
-              <h1 className="text-xl md:text-2xl font-extrabold leading-tight truncate">
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold leading-tight">
                 {profile.name}
               </h1>
               {profile.title && (
-                <p className="text-sm text-slate-500 mt-0.5 truncate">{profile.title}</p>
+                <p className="text-sm text-slate-500 mt-0.5">{profile.title}</p>
               )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
                 {profile.location && (
                   <span className="flex items-center gap-1">
                     <MapPin size={11} />{profile.location}

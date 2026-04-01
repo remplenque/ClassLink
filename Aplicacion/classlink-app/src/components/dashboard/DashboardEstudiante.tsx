@@ -77,7 +77,7 @@ export default function DashboardEstudiante() {
       );
 
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [user?.id]);
 
   if (loading) {

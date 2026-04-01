@@ -231,7 +231,7 @@ export default function MuroPage() {
       description: sanitizedDesc,
       content:     sanitizedDesc,
       author_id:   user.id,
-      image:       mediaUrl || null,
+      image:       mediaUrl || "",
       tag:         newTag,
       category:    newCategory,
     });
