@@ -21,7 +21,8 @@ import DOMPurify from "isomorphic-dompurify";
 const TABS = ["Todos", "Publicaciones", "Portafolios"] as const;
 
 const TAG_FILTERS = [
-  "Todos", "Soldadura TIG", "Ebanistería", "Mecatrónica", "Electricidad", "Evento",
+  "Todos", "Mecatrónica", "Electricidad", "Soldadura TIG", "Ebanistería",
+  "Refrigeración", "Informática", "Construcción", "Automotriz", "Evento", "Oferta Laboral",
 ];
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi", ".mkv"];
@@ -277,7 +278,18 @@ export default function MuroPage() {
     return matchTab && matchTag && matchSearch;
   });
 
-  // ── Render ─────────────────────────────────────────────
+  const trendingTags = [
+    { name: "Mecatrónica",   posts: 24 },
+    { name: "Soldadura TIG", posts: 18 },
+    { name: "Electricidad",  posts: 15 },
+    { name: "Ebanistería",   posts: 11 },
+    { name: "Construcción",  posts:  9 },
+    { name: "Automotriz",    posts:  8 },
+    { name: "Refrigeración", posts:  7 },
+    { name: "Evento",        posts:  6 },
+  ];
+
+  // ── Render ────────────────────────────────────────────
 
   return (
     <PageLayout>

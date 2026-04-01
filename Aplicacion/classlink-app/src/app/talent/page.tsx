@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const SPECIALTIES = ["Todas", "Mecatrónica", "Electricidad", "Soldadura", "Ebanistería"];
+const SPECIALTIES = ["Todas", "Mecatrónica", "Electricidad", "Soldadura", "Ebanistería", "Refrigeración", "Informática", "Construcción", "Automotriz", "Gastronomía"];
 const ROLE_FILTERS = ["Todos", "Estudiante", "Egresado"] as const;
 const AVAILABILITY_FILTERS = ["Todos", "Disponible", "En prácticas", "No disponible"] as const;
 const SORT_OPTIONS = [
