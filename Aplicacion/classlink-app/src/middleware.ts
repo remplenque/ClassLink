@@ -6,7 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that are publicly accessible without a session
-const PUBLIC_ROUTES = ["/login", "/register", "/api/health"];
+const PUBLIC_ROUTES = ["/login", "/register", "/api/health", "/api/seed"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
