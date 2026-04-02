@@ -28,10 +28,20 @@ const DEMO_USERS: DemoUser[] = [
 ];
 
 export async function POST() {
-  const admin = createAdminClient();
   const log: string[] = [];
 
+  // Validate env vars before doing anything — returns clear JSON on misconfiguration
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json(
+      { ok: false, error: "Missing env vars: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set in Vercel." },
+      { status: 500 }
+    );
+  }
+
   try {
+    const admin = createAdminClient();
     // ── Step 1: Create or find each demo auth user ────────────────
     const uids: Record<string, string> = {};
 
