@@ -41,7 +41,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
     supabase
       .from("notifications")
-      .select("id, title, message, read, created_at, type")
+      .select("id, title, body, read, created_at, type")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50)
@@ -51,7 +51,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
           data.map((n) => ({
             id:          n.id,
             title:       n.title,
-            description: n.message ?? "",
+            description: n.body ?? "",
             time:        new Date(n.created_at).toLocaleString("es-CR"),
             read:        n.read ?? false,
             forRoles:    [role], // these are already user-specific
@@ -70,13 +70,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
         const n = payload.new as {
-          id: string; title: string; message: string;
+          id: string; title: string; body: string;
           read: boolean; created_at: string; type: string;
         };
         setNotifications((prev) => [{
           id:          n.id,
           title:       n.title,
-          description: n.message ?? "",
+          description: n.body ?? "",
           time:        new Date(n.created_at).toLocaleString("es-CR"),
           read:        false,
           forRoles:    [role],

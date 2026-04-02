@@ -45,14 +45,22 @@ export default function DashboardColegio() {
         if (data) setProfile(data as DashProfile);
       });
 
-    // Try to fetch from queue_requests table; silently ignore if not yet created
     const queuePromise = supabase
-      .from("queue_requests")
-      .select("id, title, author, urgent, date")
+      .from("internship_requests")
+      .select("id, title, urgent, created_at, profiles!internship_requests_company_id_fkey(company_name, name)")
+      .eq("school_id", user.id)
       .order("urgent", { ascending: false })
       .limit(10)
       .then(({ data }) => {
-        setQueue(data ?? []);
+        setQueue(
+          (data ?? []).map((r: any) => ({
+            id:     r.id,
+            title:  r.title,
+            author: r.profiles?.company_name || r.profiles?.name || "Empresa",
+            urgent: r.urgent,
+            date:   new Date(r.created_at).toLocaleDateString("es-CR"),
+          }))
+        );
       });
 
     Promise.allSettled([profilePromise, queuePromise]).then(() => setLoading(false));
