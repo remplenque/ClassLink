@@ -5,7 +5,6 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { profileEditSchema } from "@/lib/schemas";
-import { PROFILES } from "@/lib/data";
 import { createStudent, graduateStudent } from "@/app/actions/school";
 import type { Vacancy, JobApplicant } from "@/lib/types";
 import {
@@ -28,6 +27,15 @@ interface Profile {
   website: string; open_positions: number;
   school_name: string; student_count: number | null;
   alliance_count: number; employability_rate: number | null;
+  // Step 1 additions
+  soft_skills: string[] | null;
+  attendance: number | null;
+  rut: string | null;
+}
+
+interface DbSchoolReport {
+  id: string; period: string; summary: string;
+  teacher_comment: string; behavior_note: string;
 }
 
 interface PortfolioItem {
@@ -69,22 +77,19 @@ export default function ProfilePage() {
   const [editBioInline,    setEditBioInline]    = useState("");
   const [editLocationInline,setEditLocationInline] = useState("");
 
-  // Local student-specific data (from mock, editable locally)
-  const [localSoftSkills,  setLocalSoftSkills]  = useState<string[]>(PROFILES.student.softSkills ?? []);
-  const [localSkills,      setLocalSkills]      = useState<string[]>(PROFILES.student.skills ?? []);
+  // Local student-specific data (populated from DB profile after load)
+  const [localSoftSkills,  setLocalSoftSkills]  = useState<string[]>([]);
+  const [localSkills,      setLocalSkills]      = useState<string[]>([]);
   const [localBio,         setLocalBio]         = useState<string | null>(null);
   const [localLocation,    setLocalLocation]    = useState<string | null>(null);
 
-  // Company vacancies (local state from mock)
-  const [localVacancies,   setLocalVacancies]   = useState<Vacancy[]>(PROFILES.company.vacancies ?? []);
+  // School report (student)
+  const [schoolReport,     setSchoolReport]     = useState<DbSchoolReport | null>(null);
+
+  // Company vacancies (fetched from DB)
+  const [localVacancies,   setLocalVacancies]   = useState<Vacancy[]>([]);
   const [expandedVacancy,  setExpandedVacancy]  = useState<string | null>(null);
-  const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"accepted"|"rejected">>(() => {
-    const init: Record<string, "pending"|"accepted"|"rejected"> = {};
-    (PROFILES.company.vacancies ?? []).forEach((v) =>
-      v.applicants.forEach((a) => { init[a.id] = a.status; })
-    );
-    return init;
-  });
+  const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"accepted"|"rejected">>({});
   const [addVacancyOpen,   setAddVacancyOpen]   = useState(false);
   const [newVacTitle,      setNewVacTitle]      = useState("");
   const [newVacDept,       setNewVacDept]       = useState("");
@@ -181,6 +186,82 @@ export default function ProfilePage() {
     setStudentsLoading(false);
   }, [user?.id]);
 
+  const fetchVacancies = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("job_postings")
+      .select(`
+        id, title, description, type, specialty, location, is_open,
+        department, duration, paid, salary,
+        job_applications (
+          id, status,
+          profiles!job_applications_student_id_fkey (id, name, avatar, specialty)
+        )
+      `)
+      .eq("company_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!data) return;
+    const mapped: Vacancy[] = (data as unknown[]).map((raw: unknown) => {
+      const r = raw as {
+        id: string; title: string; description: string; type: string;
+        is_open: boolean; department?: string; duration?: string;
+        paid?: boolean; salary?: string;
+        job_applications?: { id: string; status: string; profiles?: { id: string; name: string; avatar: string | null; specialty: string | null } | null }[];
+      };
+      const applicants = (r.job_applications ?? []).map((a) => ({
+        id: a.id,
+        name: a.profiles?.name ?? "Estudiante",
+        avatar: a.profiles?.avatar ?? "",
+        specialty: a.profiles?.specialty ?? "",
+        status: (["pending","accepted","rejected"].includes(a.status) ? a.status : "pending") as "pending"|"accepted"|"rejected",
+        matchScore: 0,
+      }));
+      return {
+        id: r.id,
+        title: r.title,
+        description: r.description ?? "",
+        type: (r.type ?? "Pasantia") as Vacancy["type"],
+        department: r.department ?? "",
+        duration: r.duration ?? "",
+        paid: r.paid ?? false,
+        salary: r.salary ?? "",
+        status: r.is_open ? "Abierta" : "Cerrada",
+        applicants,
+      } as Vacancy;
+    });
+    setLocalVacancies(mapped);
+    // Sync applicant statuses
+    const statuses: Record<string, "pending"|"accepted"|"rejected"> = {};
+    mapped.forEach((v) => v.applicants.forEach((a) => { statuses[a.id] = a.status; }));
+    setApplicantStatuses(statuses);
+  }, [user?.id]);
+
+  const fetchSchoolReport = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("school_reports")
+      .select("id, period, summary, teacher_comment, behavior_note")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    setSchoolReport((data as DbSchoolReport | null) ?? null);
+  }, [user?.id]);
+
+  const fetchUserSkills = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("user_skills")
+      .select("skills(name)")
+      .eq("user_id", user.id);
+    const names = (data ?? []).map((row: unknown) => {
+      const r = row as { skills?: { name?: string } | null };
+      return r.skills?.name ?? "";
+    }).filter(Boolean);
+    setLocalSkills(names);
+  }, [user?.id]);
+
   useEffect(() => {
     fetchProfile();
     fetchPortfolio();
@@ -191,6 +272,17 @@ export default function ProfilePage() {
   useEffect(() => {
     if (tab === "Mis Estudiantes" && user?.role === "Colegio") fetchStudents();
   }, [tab, fetchStudents, user?.role]);
+
+  // Populate local state from profile once loaded
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.soft_skills) setLocalSoftSkills(profile.soft_skills);
+    if (profile.role === "Empresa") fetchVacancies();
+    if (profile.role === "Estudiante") {
+      fetchSchoolReport();
+      fetchUserSkills();
+    }
+  }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Welcome popup for new accounts
   useEffect(() => {
@@ -555,7 +647,7 @@ export default function ProfilePage() {
                 <span className="flex items-center gap-1.5">
                   <Building2 size={16} />
                   <span className="font-semibold text-slate-600">RUT Empresa:</span>&nbsp;
-                  {PROFILES.company.rut ?? profile.email}
+                  {profile.rut ?? profile.email}
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5"><Mail size={16} />{profile.email}</span>
@@ -891,7 +983,7 @@ export default function ProfilePage() {
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
                     <h3 className="font-bold text-sm mb-4">Asistencia al Taller</h3>
                     {(() => {
-                      const att = PROFILES.student.attendance ?? 0;
+                      const att = profile?.attendance ?? 0;
                       const attColor = att >= 90 ? "#10b981" : att >= 75 ? "#f59e0b" : "#ef4444";
                       const r = 40;
                       const circ = 2 * Math.PI * r;
@@ -930,23 +1022,23 @@ export default function ProfilePage() {
                       <FileText size={15} className="text-slate-500" />
                       <h3 className="font-bold text-sm">Reporte del Colegio</h3>
                     </div>
-                    {PROFILES.student.schoolReport ? (
+                    {schoolReport ? (
                       <>
                         <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full mb-3">
-                          {PROFILES.student.schoolReport.period}
+                          {schoolReport.period}
                         </span>
                         <div className="space-y-3">
                           <div>
                             <p className="text-xs font-bold text-slate-600 mb-1">Resumen</p>
-                            <p className="text-sm text-slate-500 leading-relaxed">{PROFILES.student.schoolReport.summary}</p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{schoolReport.summary}</p>
                           </div>
                           <div className="border-l-4 border-amber-400 pl-4 bg-amber-50/40 py-2 rounded-r-xl">
                             <p className="text-xs font-bold text-slate-600 mb-1">Comentario del Docente</p>
-                            <p className="text-sm text-slate-600 italic leading-relaxed">{PROFILES.student.schoolReport.teacherComment}</p>
+                            <p className="text-sm text-slate-600 italic leading-relaxed">{schoolReport.teacher_comment}</p>
                           </div>
                           <div>
                             <p className="text-xs font-bold text-slate-600 mb-1">Nota de Conducta</p>
-                            <p className="text-sm text-slate-500 leading-relaxed">{PROFILES.student.schoolReport.behaviorNote}</p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{schoolReport.behavior_note}</p>
                           </div>
                         </div>
                       </>
