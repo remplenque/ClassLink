@@ -118,3 +118,57 @@ export async function clearMustChangePassword() {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+// ── graduateStudent ──────────────────────────────────────
+// Promotes a student to Egresado. Only the owning school may call this.
+export async function graduateStudent(studentId: string) {
+  if (!studentId) return { error: "ID inválido." };
+
+  const cookieStore = await cookies();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServerSupabaseClient(cookieStore as any);
+  const { data: { user: caller }, error: sessionErr } = await supabase.auth.getUser();
+
+  if (sessionErr || !caller) return { error: "No autenticado." };
+
+  // Verify caller is a Colegio and owns the student
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role, id")
+    .eq("id", caller.id)
+    .single();
+
+  if (!callerProfile || callerProfile.role !== "Colegio") {
+    return { error: "Solo un Colegio puede graduar estudiantes." };
+  }
+
+  const { data: studentProfile } = await supabase
+    .from("profiles")
+    .select("school_id, role")
+    .eq("id", studentId)
+    .single();
+
+  if (!studentProfile || studentProfile.school_id !== callerProfile.id) {
+    return { error: "Estudiante no pertenece a este centro." };
+  }
+  if (studentProfile.role !== "Estudiante") {
+    return { error: "Este perfil ya no es Estudiante." };
+  }
+
+  const admin = createAdminClient();
+
+  // Update profile row
+  const { error: updateErr } = await admin
+    .from("profiles")
+    .update({ role: "Egresado", updated_at: new Date().toISOString() })
+    .eq("id", studentId);
+
+  if (updateErr) return { error: updateErr.message };
+
+  // Update auth app_metadata role
+  await admin.auth.admin.updateUserById(studentId, {
+    app_metadata: { role: "Egresado" },
+  });
+
+  return { success: true };
+}

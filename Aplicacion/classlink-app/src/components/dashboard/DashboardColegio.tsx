@@ -25,13 +25,18 @@ interface QueueItem {
   id: string; title: string; author: string; urgent: boolean; date: string;
 }
 
+interface SpecialtyStat {
+  specialty: string | null; count: number;
+}
+
 export default function DashboardColegio() {
   const { user } = useAuth();
   const { notifications } = useRole();
 
-  const [profile,  setProfile]  = useState<DashProfile | null>(null);
-  const [queue,    setQueue]    = useState<QueueItem[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [profile,       setProfile]      = useState<DashProfile | null>(null);
+  const [queue,         setQueue]        = useState<QueueItem[]>([]);
+  const [specialties,   setSpecialties]  = useState<SpecialtyStat[]>([]);
+  const [loading,       setLoading]      = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -63,7 +68,25 @@ export default function DashboardColegio() {
         );
       });
 
-    Promise.allSettled([profilePromise, queuePromise]).then(() => setLoading(false));
+    const specialtyPromise = supabase
+      .from("profiles")
+      .select("specialty")
+      .eq("school_id", user.id)
+      .eq("role", "Estudiante")
+      .then(({ data }: { data: { specialty: string | null }[] | null }) => {
+        const counts: Record<string, number> = {};
+        (data ?? []).forEach((r: { specialty: string | null }) => {
+          const key = r.specialty ?? "Sin especialidad";
+          counts[key] = (counts[key] ?? 0) + 1;
+        });
+        setSpecialties(
+          Object.entries(counts)
+            .map(([specialty, count]) => ({ specialty, count }))
+            .sort((a, b) => b.count - a.count)
+        );
+      });
+
+    Promise.allSettled([profilePromise, queuePromise, specialtyPromise]).then(() => setLoading(false));
   }, [user?.id]);
 
   if (loading) {
@@ -224,30 +247,29 @@ export default function DashboardColegio() {
             )}
           </div>
 
-          {/* Specialty stats */}
-          {profile.student_count != null && profile.student_count > 0 && (
+          {/* Specialty breakdown */}
+          {specialties.length > 0 && (
             <div className="bg-white rounded-2xl p-6 border border-slate-200/60 animate-fade-in-up stagger-3">
-              <h3 className="font-bold text-base mb-5">Rendimiento Estimado</h3>
+              <h3 className="font-bold text-base mb-5">Estudiantes por Especialidad</h3>
               <div className="space-y-4">
-                {[
-                  { name: "Mecatrónica",  rate: 92 },
-                  { name: "Electricidad", rate: 88 },
-                  { name: "Soldadura",    rate: 85 },
-                  { name: "Ebanistería",  rate: 78 },
-                ].map((spec, i) => (
-                  <div key={spec.name} className={`animate-fade-in-up stagger-${i + 1}`}>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="font-semibold text-slate-700">{spec.name}</span>
-                      <span className="font-bold text-emerald-600">{spec.rate}% colocación</span>
+                {specialties.map((spec, i) => {
+                  const maxCount = specialties[0]?.count ?? 1;
+                  const pct = Math.round((spec.count / maxCount) * 100);
+                  return (
+                    <div key={spec.specialty} className={`animate-fade-in-up stagger-${Math.min(i + 1, 6)}`}>
+                      <div className="flex justify-between text-sm mb-1.5">
+                        <span className="font-semibold text-slate-700">{spec.specialty}</span>
+                        <span className="font-bold text-amber-600">{spec.count} estudiante{spec.count !== 1 ? "s" : ""}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-out"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-out"
-                        style={{ width: `${spec.rate}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

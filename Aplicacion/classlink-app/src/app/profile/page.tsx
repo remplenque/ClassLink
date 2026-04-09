@@ -5,7 +5,8 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { profileEditSchema } from "@/lib/schemas";
-import { PROFILES, SCHOOL_STUDENTS } from "@/lib/data";
+import { PROFILES } from "@/lib/data";
+import { createStudent, graduateStudent } from "@/app/actions/school";
 import type { Vacancy, JobApplicant } from "@/lib/types";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
@@ -100,6 +101,30 @@ export default function ProfilePage() {
   const [schoolSearch,     setSchoolSearch]     = useState("");
   const [schoolSpecialty,  setSchoolSpecialty]  = useState("Todos");
 
+  // DB-fetched students (Colegio role)
+  interface DbStudent {
+    id: string; name: string; email: string; avatar: string | null;
+    specialty: string | null; grade: string | null;
+    attendance: number | null; availability: string | null;
+  }
+  const [dbStudents,       setDbStudents]       = useState<DbStudent[]>([]);
+  const [studentsLoading,  setStudentsLoading]  = useState(false);
+
+  // Add Student modal
+  const [addStudentOpen,   setAddStudentOpen]   = useState(false);
+  const [newStFirstName,   setNewStFirstName]   = useState("");
+  const [newStLastName,    setNewStLastName]     = useState("");
+  const [newStEmail,       setNewStEmail]       = useState("");
+  const [newStPassword,    setNewStPassword]    = useState("");
+  const [newStSpecialty,   setNewStSpecialty]   = useState("");
+  const [newStGrade,       setNewStGrade]       = useState("");
+  const [addStudentErr,    setAddStudentErr]    = useState<string|null>(null);
+  const [addStudentOk,     setAddStudentOk]     = useState(false);
+  const [addStudentBusy,   setAddStudentBusy]   = useState(false);
+
+  // Graduate action
+  const [graduatingId,     setGraduatingId]     = useState<string|null>(null);
+
   // Recommendation form
   const [recFormTarget,    setRecFormTarget]    = useState<"colegio"|"empresa"|null>(null);
   const [recMessage,       setRecMessage]       = useState("");
@@ -143,11 +168,29 @@ export default function ProfilePage() {
     );
   }, [user?.id]);
 
+  const fetchStudents = useCallback(async () => {
+    if (!user?.id) return;
+    setStudentsLoading(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, email, avatar, specialty, grade, attendance, availability")
+      .eq("school_id", user.id)
+      .eq("role", "Estudiante")
+      .order("name");
+    setDbStudents((data ?? []) as DbStudent[]);
+    setStudentsLoading(false);
+  }, [user?.id]);
+
   useEffect(() => {
     fetchProfile();
     fetchPortfolio();
     fetchBadges();
   }, [fetchProfile, fetchPortfolio, fetchBadges]);
+
+  // Fetch students when school tab is first viewed
+  useEffect(() => {
+    if (tab === "Mis Estudiantes" && user?.role === "Colegio") fetchStudents();
+  }, [tab, fetchStudents, user?.role]);
 
   // Welcome popup for new accounts
   useEffect(() => {
@@ -358,17 +401,52 @@ export default function ProfilePage() {
     setAddVacancyOpen(false);
   };
 
-  // School students filter
-  const filteredStudents = SCHOOL_STUDENTS.filter((s) => {
+  // School students filter (from DB)
+  const filteredStudents = dbStudents.filter((s) => {
     const matchSearch = schoolSearch === "" ||
       s.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
-      s.specialty.toLowerCase().includes(schoolSearch.toLowerCase());
+      (s.specialty ?? "").toLowerCase().includes(schoolSearch.toLowerCase());
     const matchSpec = schoolSpecialty === "Todos" || s.specialty === schoolSpecialty;
     return matchSearch && matchSpec;
   });
-  const avgAttendance = Math.round(SCHOOL_STUDENTS.reduce((a, s) => a + s.attendance, 0) / SCHOOL_STUDENTS.length);
-  const avgGpa        = (SCHOOL_STUDENTS.reduce((a, s) => a + s.gpa, 0) / SCHOOL_STUDENTS.length).toFixed(1);
-  const inPractice    = SCHOOL_STUDENTS.filter((s) => s.availability === "En prácticas").length;
+  const avgAttendance = dbStudents.length === 0 ? 0 :
+    Math.round(dbStudents.reduce((a, s) => a + (s.attendance ?? 0), 0) / dbStudents.length);
+  const inPractice    = dbStudents.filter((s) => s.availability === "En prácticas").length;
+
+  // Handlers
+  const handleAddStudent = async () => {
+    setAddStudentErr(null);
+    setAddStudentBusy(true);
+    const result = await createStudent({
+      firstName:    newStFirstName,
+      lastName:     newStLastName,
+      email:        newStEmail,
+      tempPassword: newStPassword,
+      specialty:    newStSpecialty || undefined,
+      grade:        newStGrade || undefined,
+    });
+    setAddStudentBusy(false);
+    if ("error" in result && result.error) {
+      setAddStudentErr(result.error);
+    } else {
+      setAddStudentOk(true);
+      setNewStFirstName(""); setNewStLastName(""); setNewStEmail("");
+      setNewStPassword(""); setNewStSpecialty(""); setNewStGrade("");
+      setTimeout(() => { setAddStudentOpen(false); setAddStudentOk(false); fetchStudents(); }, 1200);
+    }
+  };
+
+  const handleGraduate = async (studentId: string) => {
+    if (!window.confirm("¿Graduar este estudiante? Su rol cambiará a Egresado.")) return;
+    setGraduatingId(studentId);
+    const result = await graduateStudent(studentId);
+    setGraduatingId(null);
+    if ("error" in result && result.error) {
+      alert(result.error);
+    } else {
+      fetchStudents();
+    }
+  };
 
   return (
     <PageLayout>
@@ -1207,19 +1285,26 @@ export default function ProfilePage() {
             {/* ── Mis Estudiantes (Colegio) ── */}
             {tab === "Mis Estudiantes" && isSchool && (
               <div className="space-y-4">
+                {/* Header row */}
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-slate-800">Mis Estudiantes</h3>
+                  <button
+                    onClick={() => { setAddStudentErr(null); setAddStudentOk(false); setAddStudentOpen(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                  >
+                    <Plus size={14} /> Agregar Alumno
+                  </button>
+                </div>
+
                 {/* Summary stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
-                    <p className="text-2xl font-extrabold text-amber-600">{SCHOOL_STUDENTS.length}</p>
+                    <p className="text-2xl font-extrabold text-amber-600">{dbStudents.length}</p>
                     <p className="text-xs text-slate-500 mt-1">Total estudiantes</p>
                   </div>
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
                     <p className="text-2xl font-extrabold text-emerald-600">{avgAttendance}%</p>
                     <p className="text-xs text-slate-500 mt-1">Asistencia promedio</p>
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
-                    <p className="text-2xl font-extrabold text-cyan-600">{avgGpa}</p>
-                    <p className="text-xs text-slate-500 mt-1">Promedio de notas</p>
                   </div>
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
                     <p className="text-2xl font-extrabold text-violet-600">{inPractice}</p>
@@ -1253,47 +1338,65 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Student list */}
-                <div className="space-y-2">
-                  {filteredStudents.map((s) => {
-                    const attColor = s.attendance >= 90 ? "bg-emerald-500" : s.attendance >= 75 ? "bg-amber-400" : "bg-red-400";
-                    const availColor = s.availability === "Disponible" ? "bg-emerald-50 text-emerald-700" : s.availability === "En prácticas" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500";
-                    return (
-                      <div key={s.id} className="bg-white rounded-2xl p-4 border border-slate-200/60 flex items-center gap-4">
-                        {s.avatar ? (
-                          <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
-                            {s.name.charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <p className="text-sm font-bold truncate">{s.name}</p>
-                            <span className="text-[10px] text-slate-500">{s.grade}</span>
-                            <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s.specialty}</span>
-                          </div>
-                          {/* Attendance bar */}
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
-                              <div className={`h-full ${attColor} rounded-full transition-all`} style={{ width: `${s.attendance}%` }} />
+                {studentsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 size={24} className="animate-spin text-amber-400" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredStudents.map((s) => {
+                      const att = s.attendance ?? 0;
+                      const attColor = att >= 90 ? "bg-emerald-500" : att >= 75 ? "bg-amber-400" : "bg-red-400";
+                      const availColor = s.availability === "Disponible" ? "bg-emerald-50 text-emerald-700" : s.availability === "En prácticas" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500";
+                      return (
+                        <div key={s.id} className="bg-white rounded-2xl p-4 border border-slate-200/60 flex items-center gap-4">
+                          {s.avatar ? (
+                            <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
+                              {s.name.charAt(0)}
                             </div>
-                            <span className="text-[10px] text-slate-500">{s.attendance}%</span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <p className="text-sm font-bold truncate">{s.name}</p>
+                              {s.grade && <span className="text-[10px] text-slate-500">{s.grade}</span>}
+                              {s.specialty && (
+                                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s.specialty}</span>
+                              )}
+                            </div>
+                            {/* Attendance bar */}
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                                <div className={`h-full ${attColor} rounded-full transition-all`} style={{ width: `${att}%` }} />
+                              </div>
+                              <span className="text-[10px] text-slate-500">{att}% asistencia</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-end gap-1.5">
+                            {s.availability && (
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${availColor}`}>{s.availability}</span>
+                            )}
+                            <button
+                              onClick={() => handleGraduate(s.id)}
+                              disabled={graduatingId === s.id}
+                              className="text-[10px] font-bold px-2.5 py-1 bg-violet-50 text-violet-600 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {graduatingId === s.id ? "..." : "Graduar"}
+                            </button>
                           </div>
                         </div>
-                        <div className="shrink-0 text-right space-y-1">
-                          <p className="text-sm font-bold text-slate-700">{s.gpa.toFixed(1)}</p>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${availColor}`}>{s.availability}</span>
-                          <p className="text-[10px] text-slate-400">{s.badgeCount} insignias</p>
-                        </div>
+                      );
+                    })}
+                    {filteredStudents.length === 0 && !studentsLoading && (
+                      <div className="text-center py-12 bg-white rounded-2xl border border-slate-200/60">
+                        <GraduationCap size={40} className="mx-auto mb-3 text-slate-200" />
+                        <p className="text-slate-400 font-medium">No hay estudiantes registrados.</p>
+                        <p className="text-xs text-slate-400 mt-1">Usa "Agregar Alumno" para crear el primer estudiante.</p>
                       </div>
-                    );
-                  })}
-                  {filteredStudents.length === 0 && (
-                    <div className="text-center py-10 bg-white rounded-2xl border border-slate-200/60">
-                      <p className="text-slate-400">No se encontraron estudiantes.</p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1492,6 +1595,62 @@ export default function ProfilePage() {
           </button>
         </div>
       </Modal>
+
+      {/* ── Add Student Modal ── */}
+      {isSchool && (
+        <Modal open={addStudentOpen} onClose={() => setAddStudentOpen(false)} title="Agregar Nuevo Alumno">
+          <div className="space-y-4">
+            {addStudentErr && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{addStudentErr}</div>
+            )}
+            {addStudentOk && (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">Alumno creado con éxito.</div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Nombre *</label>
+                <input value={newStFirstName} onChange={(e) => setNewStFirstName(e.target.value)}
+                  placeholder="Felipe" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Apellido *</label>
+                <input value={newStLastName} onChange={(e) => setNewStLastName(e.target.value)}
+                  placeholder="Castro" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">Correo electrónico *</label>
+              <input type="email" value={newStEmail} onChange={(e) => setNewStEmail(e.target.value)}
+                placeholder="felipe@colegio.cr" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">Contraseña temporal *</label>
+              <input type="password" value={newStPassword} onChange={(e) => setNewStPassword(e.target.value)}
+                placeholder="Mín. 8 caracteres" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+              <p className="text-[10px] text-slate-400 mt-1">El alumno deberá cambiarla en su primer inicio de sesión.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Especialidad</label>
+                <input value={newStSpecialty} onChange={(e) => setNewStSpecialty(e.target.value)}
+                  placeholder="Mecatronica" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Nivel/Año</label>
+                <input value={newStGrade} onChange={(e) => setNewStGrade(e.target.value)}
+                  placeholder="3° Medio" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none" />
+              </div>
+            </div>
+            <button
+              onClick={handleAddStudent}
+              disabled={addStudentBusy || !newStFirstName || !newStLastName || !newStEmail || !newStPassword}
+              className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {addStudentBusy ? <><Loader2 size={15} className="animate-spin" /> Creando…</> : <><Plus size={15} /> Crear Alumno</>}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* ── Welcome Onboarding Modal ── */}
       {role === "Estudiante" && (
