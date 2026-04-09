@@ -8,17 +8,18 @@ import PageLayout from "@/components/layout/PageLayout";
 import Modal      from "@/components/ui/Modal";
 import { supabase } from "@/lib/supabase";
 import { useAuth }  from "@/lib/auth-context";
+import { useRole }  from "@/lib/role-context";
 import type { FeedPost } from "@/lib/types";
 import {
   Heart, MessageCircle, Plus, Search, TrendingUp, Users, Flame, Loader2,
-  ImagePlus, X, Video, FileImage,
+  ImagePlus, X, Video, FileImage, Clock, MapPin, Briefcase,
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
 
 // ── Constants ─────────────────────────────────────────────
 
-const TABS = ["Todos", "Publicaciones", "Portafolios"] as const;
+const TABS = ["Todos", "Portafolios", "Eventos", "Ofertas de Trabajo"] as const;
 
 const TAG_FILTERS = [
   "Todos", "Mecatrónica", "Electricidad", "Soldadura TIG", "Ebanistería",
@@ -37,6 +38,7 @@ function isVideoUrl(url: string) {
 
 export default function MuroPage() {
   const { user } = useAuth();
+  const { role } = useRole();
 
   const [posts,       setPosts]       = useState<FeedPost[]>([]);
   const [tab,         setTab]         = useState<string>("Todos");
@@ -48,10 +50,16 @@ export default function MuroPage() {
   const [postError,   setPostError]   = useState<string | null>(null);
 
   // New post form fields
-  const [newTitle,    setNewTitle]    = useState("");
-  const [newDesc,     setNewDesc]     = useState("");
-  const [newTag,      setNewTag]      = useState("Mecatrónica");
-  const [newCategory, setNewCategory] = useState<"publicacion" | "portafolio">("publicacion");
+  const [newTitle,          setNewTitle]          = useState("");
+  const [newDesc,           setNewDesc]           = useState("");
+  const [newTag,            setNewTag]            = useState("Mecatrónica");
+  const [newCategory,       setNewCategory]       = useState<"publicacion" | "portafolio" | "oferta">("publicacion");
+  // Offer-specific fields
+  const [offerSpecialty,    setOfferSpecialty]    = useState("Mecatronica");
+  const [offerDuration,     setOfferDuration]     = useState("");
+  const [offerPaid,         setOfferPaid]         = useState(true);
+  const [offerSalary,       setOfferSalary]       = useState("");
+  const [offerLocation,     setOfferLocation]     = useState("");
 
   // Media upload for new post
   const [mediaFile,    setMediaFile]    = useState<File | null>(null);
@@ -251,6 +259,11 @@ export default function MuroPage() {
     // Reset form
     setNewTitle("");
     setNewDesc("");
+    setOfferSpecialty("Mecatronica");
+    setOfferDuration("");
+    setOfferPaid(true);
+    setOfferSalary("");
+    setOfferLocation("");
     clearMedia();
     setModalOpen(false);
     await fetchPosts();
@@ -265,17 +278,19 @@ export default function MuroPage() {
 
   // ── Filtering ──────────────────────────────────────────
 
+  const offerCount = posts.filter((p) => p.category === "oferta").length;
+
   const filtered = posts.filter((p) => {
     const matchTab =
       tab === "Todos" ||
-      (tab === "Publicaciones" && p.category === "publicacion") ||
-      (tab === "Portafolios"   && p.category === "portafolio");
-    const matchTag    = tagFilter === "Todos" || p.tag === tagFilter;
+      (tab === "Portafolios"       && p.category === "portafolio") ||
+      (tab === "Eventos"           && (p.category === "evento" || p.category === "publicacion")) ||
+      (tab === "Ofertas de Trabajo" && p.category === "oferta");
     const matchSearch =
       search === "" ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       (p.authorName ?? "").toLowerCase().includes(search.toLowerCase());
-    return matchTab && matchTag && matchSearch;
+    return matchTab && matchSearch;
   });
 
   const trendingTags = [
@@ -305,7 +320,7 @@ export default function MuroPage() {
             </p>
           </div>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => { if (role === "Empresa") setNewCategory("oferta"); setModalOpen(true); }}
             disabled={!user}
             className="flex items-center gap-1.5 bg-cyan-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-cyan-700 active:bg-cyan-800 transition-colors shadow-sm btn-press disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -326,36 +341,23 @@ export default function MuroPage() {
             />
           </div>
 
-          <div className="flex items-center gap-4 border-b border-slate-200">
+          <div className="flex items-center gap-4 border-b border-slate-200 overflow-x-auto no-scrollbar">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`pb-2.5 text-sm font-semibold transition-colors border-b-2 ${
+                className={`pb-2.5 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
                   tab === t
                     ? "border-cyan-500 text-cyan-700"
                     : "border-transparent text-slate-400 hover:text-slate-600"
                 }`}
               >
                 {t}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {TAG_FILTERS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTagFilter(t)}
-                className={`
-                  whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all
-                  ${tagFilter === t
-                    ? "bg-cyan-600 text-white shadow-sm"
-                    : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
-                  }
-                `}
-              >
-                {t}
+                {t === "Ofertas de Trabajo" && offerCount > 0 && (
+                  <span className="bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {offerCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -373,98 +375,189 @@ export default function MuroPage() {
               </div>
             )}
 
-            {!isFetching && filtered.map((post, i) => (
-              <article
-                key={post.id}
-                className={`
-                  bg-white rounded-2xl border border-slate-200/60 overflow-hidden
-                  hover:shadow-md hover:border-slate-300/60
-                  transition-all duration-200
-                  animate-fade-in-up stagger-${Math.min(i + 1, 6)}
-                `}
-              >
-                {/* Media: image or video */}
-                {post.image && (
-                  <div className="aspect-[2.2/1] relative overflow-hidden bg-slate-100">
-                    {isVideoUrl(post.image) ? (
-                      <video
-                        src={post.image}
-                        controls
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                      />
-                    ) : (
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                      />
-                    )}
-                    <div className="absolute top-3 right-3">
-                      <span className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold text-cyan-700">
-                        {post.tag}
-                      </span>
-                    </div>
-                  </div>
-                )}
+            {!isFetching && filtered.map((post, i) => {
+              // ── Job Offer Card ──
+              if (post.category === "oferta") {
+                return (
+                  <article
+                    key={post.id}
+                    className={`
+                      bg-white rounded-2xl border border-violet-200/60 overflow-hidden
+                      hover:shadow-md hover:border-violet-300/60
+                      transition-all duration-200
+                      animate-fade-in-up stagger-${Math.min(i + 1, 6)}
+                    `}
+                  >
+                    {/* Violet gradient accent bar */}
+                    <div className="h-1.5 bg-gradient-to-r from-violet-500 to-purple-600" />
 
-                <div className="p-5">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    {post.authorAvatar ? (
-                      <img
-                        src={post.authorAvatar}
-                        alt={post.authorName || post.author}
-                        className="w-9 h-9 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                        {(post.authorName || post.author).charAt(0).toUpperCase()}
+                    <div className="p-5">
+                      {/* Company header */}
+                      <div className="flex items-center gap-2.5 mb-3">
+                        {post.authorAvatar ? (
+                          <img src={post.authorAvatar} alt={post.authorName || post.author} className="w-9 h-9 rounded-xl object-cover" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center text-xs font-bold text-violet-600">
+                            {(post.authorName || post.author).charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-sm font-semibold">{post.authorName || post.author}</span>
+                          <span className="text-[10px] text-violet-500 ml-2 bg-violet-50 px-1.5 py-0.5 rounded font-medium">Empresa</span>
+                          <p className="text-[10px] text-slate-400">{post.createdAt}</p>
+                        </div>
+                        <span className="ml-auto text-[10px] bg-violet-50 text-violet-600 font-bold px-2.5 py-1 rounded-full border border-violet-100 flex items-center gap-1">
+                          <Briefcase size={10} /> Oferta
+                        </span>
                       </div>
-                    )}
-                    <div>
-                      <span className="text-sm font-semibold">
-                        {post.authorName || post.author}
+
+                      {/* Job title & description */}
+                      <h3 className="font-bold text-lg mb-1">{post.title}</h3>
+                      <p className="text-sm text-slate-500 line-clamp-2 mb-3">
+                        {post.content || post.description}
+                      </p>
+
+                      {/* Detail chips */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {post.offerDuration && (
+                          <span className="flex items-center gap-1 text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
+                            <Clock size={11} /> {post.offerDuration}
+                          </span>
+                        )}
+                        {post.offerLocation && (
+                          <span className="flex items-center gap-1 text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
+                            <MapPin size={11} /> {post.offerLocation}
+                          </span>
+                        )}
+                        {post.offerPaid === true ? (
+                          <span className="flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-semibold border border-emerald-100">
+                            Remunerada {post.offerSalary ? `· ${post.offerSalary}` : ""}
+                          </span>
+                        ) : post.offerPaid === false ? (
+                          <span className="text-[11px] bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-semibold border border-amber-100">
+                            Sin remuneración
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* CTA */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-5">
+                          <button
+                            onClick={() => toggleLike(post.id)}
+                            disabled={!user}
+                            className={`flex items-center gap-1.5 text-sm font-medium transition-all active:scale-90 disabled:opacity-40 ${post.liked ? "text-red-500" : "text-slate-400 hover:text-red-400"}`}
+                          >
+                            <Heart size={18} className={`transition-all ${post.liked ? "fill-red-500 scale-110" : ""}`} />
+                            {post.likes}
+                          </button>
+                          <span className="flex items-center gap-1.5 text-sm text-slate-400 font-medium">
+                            <MessageCircle size={18} /> {post.comments}
+                          </span>
+                        </div>
+                        <button className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
+                          Postular via Colegio
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              }
+
+              // ── Regular Post Card ──
+              return (
+                <article
+                  key={post.id}
+                  className={`
+                    bg-white rounded-2xl border border-slate-200/60 overflow-hidden
+                    hover:shadow-md hover:border-slate-300/60
+                    transition-all duration-200
+                    animate-fade-in-up stagger-${Math.min(i + 1, 6)}
+                  `}
+                >
+                  {/* Media: image or video */}
+                  {post.image && (
+                    <div className="aspect-[2.2/1] relative overflow-hidden bg-slate-100">
+                      {isVideoUrl(post.image) ? (
+                        <video
+                          src={post.image}
+                          controls
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                        />
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <span className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold text-cyan-700">
+                          {post.tag}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-5">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      {post.authorAvatar ? (
+                        <img
+                          src={post.authorAvatar}
+                          alt={post.authorName || post.author}
+                          className="w-9 h-9 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                          {(post.authorName || post.author).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-sm font-semibold">
+                          {post.authorName || post.author}
+                        </span>
+                        {post.authorRole && (
+                          <span className="text-[10px] text-slate-400 ml-2 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {post.authorRole}
+                          </span>
+                        )}
+                        <p className="text-[10px] text-slate-400">{post.createdAt}</p>
+                      </div>
+                    </div>
+
+                    <h3 className="font-bold text-lg mb-1.5">{post.title}</h3>
+                    <p className="text-sm text-slate-500 line-clamp-2 mb-4">
+                      {post.content || post.description}
+                    </p>
+
+                    <div className="flex items-center gap-5 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => toggleLike(post.id)}
+                        disabled={!user}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition-all active:scale-90 disabled:opacity-40 ${
+                          post.liked ? "text-red-500" : "text-slate-400 hover:text-red-400"
+                        }`}
+                      >
+                        <Heart
+                          size={18}
+                          className={`transition-all ${post.liked ? "fill-red-500 scale-110" : ""}`}
+                        />
+                        {post.likes}
+                      </button>
+                      <span className="flex items-center gap-1.5 text-sm text-slate-400 font-medium">
+                        <MessageCircle size={18} /> {post.comments}
                       </span>
-                      {post.authorRole && (
-                        <span className="text-[10px] text-slate-400 ml-2 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {post.authorRole}
+                      {!post.image && (
+                        <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
+                          {post.tag}
                         </span>
                       )}
-                      <p className="text-[10px] text-slate-400">{post.createdAt}</p>
                     </div>
                   </div>
-
-                  <h3 className="font-bold text-lg mb-1.5">{post.title}</h3>
-                  <p className="text-sm text-slate-500 line-clamp-2 mb-4">
-                    {post.content || post.description}
-                  </p>
-
-                  <div className="flex items-center gap-5 pt-3 border-t border-slate-100">
-                    <button
-                      onClick={() => toggleLike(post.id)}
-                      disabled={!user}
-                      className={`flex items-center gap-1.5 text-sm font-medium transition-all active:scale-90 disabled:opacity-40 ${
-                        post.liked ? "text-red-500" : "text-slate-400 hover:text-red-400"
-                      }`}
-                    >
-                      <Heart
-                        size={18}
-                        className={`transition-all ${post.liked ? "fill-red-500 scale-110" : ""}`}
-                      />
-                      {post.likes}
-                    </button>
-                    <span className="flex items-center gap-1.5 text-sm text-slate-400 font-medium">
-                      <MessageCircle size={18} /> {post.comments}
-                    </span>
-                    {!post.image && (
-                      <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
-                        {post.tag}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
 
             {!isFetching && filtered.length === 0 && (
               <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60 animate-scale-in">
@@ -646,11 +739,20 @@ export default function MuroPage() {
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Categoría</label>
               <select
                 value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value as "publicacion" | "portafolio")}
+                onChange={(e) => setNewCategory(e.target.value as "publicacion" | "portafolio" | "oferta")}
                 className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
               >
-                <option value="publicacion">Publicación</option>
-                <option value="portafolio">Portafolio</option>
+                {role === "Empresa" ? (
+                  <>
+                    <option value="oferta">Oferta de Trabajo</option>
+                    <option value="publicacion">Publicación</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="publicacion">Publicación</option>
+                    <option value="portafolio">Portafolio</option>
+                  </>
+                )}
               </select>
             </div>
             <div>
@@ -666,6 +768,72 @@ export default function MuroPage() {
               </select>
             </div>
           </div>
+
+          {/* Offer-specific fields (Empresa + oferta category) */}
+          {role === "Empresa" && newCategory === "oferta" && (
+            <div className="space-y-3 border border-violet-100 rounded-xl p-4 bg-violet-50/50">
+              <p className="text-xs font-bold text-violet-700 mb-2">Detalles de la oferta</p>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Especialidad</label>
+                <select
+                  value={offerSpecialty}
+                  onChange={(e) => setOfferSpecialty(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none bg-white"
+                >
+                  <option value="Mecatronica">Mecatrónica</option>
+                  <option value="Electricidad">Electricidad</option>
+                  <option value="Soldadura">Soldadura</option>
+                  <option value="Ebanisteria">Ebanistería</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Duración</label>
+                  <input
+                    value={offerDuration}
+                    onChange={(e) => setOfferDuration(e.target.value)}
+                    placeholder="Ej: 3 meses"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Ubicación</label>
+                  <input
+                    value={offerLocation}
+                    onChange={(e) => setOfferLocation(e.target.value)}
+                    placeholder="Ej: Santiago"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Remuneración</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOfferPaid(true)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${offerPaid ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                  >Sí</button>
+                  <button
+                    type="button"
+                    onClick={() => setOfferPaid(false)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${!offerPaid ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                  >No</button>
+                </div>
+              </div>
+              {offerPaid && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Monto</label>
+                  <input
+                    value={offerSalary}
+                    onChange={(e) => setOfferSalary(e.target.value)}
+                    placeholder="Ej: $350.000/mes"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             onClick={handleCreate}

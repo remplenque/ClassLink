@@ -18,18 +18,20 @@ import { usePathname } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import { LayoutDashboard, Newspaper, Users, MessageCircle, User } from "lucide-react";
 
-// Five tabs shown in the mobile bar (order: left → right)
-const LINKS = [
-  { path: "/muro",     label: "Muro",   icon: Newspaper      },
-  { path: "/talent",   label: "Talento", icon: Users         },
-  { path: "/",         label: "Home",    icon: LayoutDashboard },
-  { path: "/messages", label: "Chat",    icon: MessageCircle  },
-  { path: "/profile",  label: "Perfil",  icon: User           },
+// All tabs — Talento filtered out for Colegio below
+const ALL_LINKS = [
+  { path: "/muro",     label: "Muro",    icon: Newspaper,       roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/talent",   label: "Talento", icon: Users,           roles: ["Estudiante", "Egresado", "Empresa"] },
+  { path: "/",         label: "Home",    icon: LayoutDashboard, roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/messages", label: "Chat",    icon: MessageCircle,   roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/profile",  label: "Perfil",  icon: User,            roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
 ];
 
 export default function BottomMobileNav() {
   const pathname    = usePathname();
-  const { unreadCount } = useRole();
+  const { unreadCount, role } = useRole();
+
+  const LINKS = ALL_LINKS.filter((l) => l.roles.includes(role));
 
   return (
     // Frosted-glass bar pinned to the bottom of the viewport.

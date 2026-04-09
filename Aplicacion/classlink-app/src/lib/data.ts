@@ -7,6 +7,7 @@ import type {
   ChatMessage,
   Badge,
   QueueRequest,
+  SchoolStudent,
 } from "./types";
 
 // ═══════════════════════════════════════════════
@@ -34,6 +35,14 @@ export const PROFILES: Record<string, UserProfile> = {
     availability: "Disponible",
     certifications: ["Arduino Starter Certified"],
     yearsExperience: 0,
+    softSkills: ["Trabajo en equipo", "Puntualidad", "Comunicacion asertiva", "Resolucion de problemas", "Proactividad"],
+    attendance: 94,
+    schoolReport: {
+      period: "Primer Semestre 2026",
+      summary: "Felipe ha demostrado un desempeño académico sólido durante el primer semestre, destacándose en los módulos de electrónica y programación de microcontroladores. Su participación activa en clases y proyectos grupales ha contribuido positivamente al ambiente del taller.",
+      teacherComment: "Felipe es un alumno comprometido, con gran curiosidad técnica y capacidad para resolver problemas. Se le recomienda continuar desarrollando sus habilidades en programación avanzada.",
+      behaviorNote: "Comportamiento ejemplar. Respeta las normas del taller, colabora con sus compañeros y demuestra responsabilidad en el uso de los equipos.",
+    },
     portfolio: [
       { id: "pf1", title: "Robot Seguidor de Línea", description: "Robot autónomo con sensores IR y control PID.", tags: ["Arduino", "Robótica", "PID"], image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=400&fit=crop" },
       { id: "pf2", title: "Estación Meteorológica IoT", description: "Monitoreo de temperatura, humedad y presión con MQTT.", tags: ["IoT", "MQTT", "Python"], image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&h=400&fit=crop" },
@@ -48,11 +57,73 @@ export const PROFILES: Record<string, UserProfile> = {
     bio: "Empresa líder en fabricación de estructuras metálicas y automatización industrial. Buscamos talento técnico comprometido con la excelencia y la innovación.",
     location: "Quilicura, Santiago",
     joinedDate: "2025-01-10",
+    rut: "76.543.210-K",
     companyName: "MetalChile S.A.",
     industry: "Fabricación Metálica e Industria",
     employeeCount: "200-500",
     website: "metalchile.cl",
     openPositions: 5,
+    vacancies: [
+      {
+        id: "v1",
+        title: "Pasante Soldadura TIG",
+        department: "Producción",
+        type: "Pasantia",
+        status: "Activa",
+        duration: "3 meses",
+        paid: true,
+        salary: "$280.000/mes",
+        description: "Buscamos estudiantes de soldadura con conocimientos en TIG acero inoxidable. El pasante apoyará la línea de producción de estructuras metálicas bajo supervisión de un maestro soldador certificado.",
+        applicants: [
+          { id: "a1", name: "Marco Rivera", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face", specialty: "Soldadura", matchScore: 92, status: "pending" },
+          { id: "a2", name: "Sofia Vargas", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=face", specialty: "Soldadura", matchScore: 87, status: "accepted" },
+          { id: "a3", name: "Roberto Vásquez", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&h=100&fit=crop&crop=face", specialty: "Soldadura", matchScore: 79, status: "pending" },
+        ],
+      },
+      {
+        id: "v2",
+        title: "Técnico Mecatrónico Jr.",
+        department: "Automatización",
+        type: "Tiempo completo",
+        status: "Activa",
+        duration: "Indefinido",
+        paid: true,
+        salary: "$650.000/mes",
+        description: "Requerimos técnico mecatrónico para mantenimiento de líneas automatizadas. Se valorará experiencia en PLC Siemens y robótica industrial. Beneficios: bono de desempeño y capacitación continua.",
+        applicants: [
+          { id: "a4", name: "Alejandro Mendoza", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face", specialty: "Mecatrónica", matchScore: 95, status: "accepted" },
+          { id: "a5", name: "Felipe Castro", avatar: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=100&h=100&fit=crop&crop=face", specialty: "Mecatrónica", matchScore: 68, status: "pending" },
+        ],
+      },
+      {
+        id: "v3",
+        title: "Pasante Electricidad Industrial",
+        department: "Mantención",
+        type: "Pasantia",
+        status: "Activa",
+        duration: "4 meses",
+        paid: false,
+        description: "Pasantía en el área de mantención eléctrica. El estudiante aprenderá sobre tableros industriales, motores trifásicos y protecciones eléctricas en ambiente real de planta.",
+        applicants: [
+          { id: "a6", name: "Valentina Ruiz", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face", specialty: "Electricidad", matchScore: 84, status: "pending" },
+          { id: "a7", name: "Pedro Sanchez", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face", specialty: "Electricidad", matchScore: 62, status: "rejected" },
+        ],
+      },
+      {
+        id: "v4",
+        title: "Operador CNC Ebanistería",
+        department: "Carpintería Industrial",
+        type: "Tiempo completo",
+        status: "Cerrada",
+        duration: "Indefinido",
+        paid: true,
+        salary: "$580.000/mes",
+        description: "Posición cubierta. Operador de router CNC para fabricación de muebles en serie. Se requería experiencia en software de diseño CAD/CAM y acabados de madera.",
+        applicants: [
+          { id: "a8", name: "Camila Ortiz", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face", specialty: "Ebanistería", matchScore: 88, status: "accepted" },
+        ],
+      },
+    ],
   },
   school: {
     id: "u-school",
@@ -152,7 +223,22 @@ export const FEED_POSTS: FeedPost[] = [
     id: "p10", title: "Buscamos Técnico Electricista — Innova Green",
     description: "Innova Green Ltda. busca 2 técnicos electricistas con conocimiento en instalaciones solares. Postula en nuestra web.",
     author: "Innova Green Ltda.", authorAvatar: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=100&h=100&fit=crop", authorRole: "Empresa",
-    image: "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&h=400&fit=crop", tag: "Oferta Laboral", likes: 29, liked: false, comments: 10, category: "publicacion", createdAt: "2026-03-13",
+    image: "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&h=400&fit=crop", tag: "Electricidad", likes: 29, liked: false, comments: 10, category: "oferta", createdAt: "2026-03-13",
+    offerSpecialty: "Electricidad", offerDuration: "6 meses", offerPaid: true, offerSalary: "$420.000/mes", offerLocation: "Pudahuel, Santiago",
+  },
+  {
+    id: "p13", title: "Pasantía Mecatrónica — Tech Solutions S.A.",
+    description: "Buscamos 2 estudiantes de Mecatrónica para pasantía en planta de automatización. Trabajarás con robots FANUC y PLCs Siemens en proyectos reales de producción.",
+    author: "Tech Solutions S.A.", authorAvatar: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=100&h=100&fit=crop", authorRole: "Empresa",
+    image: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=600&h=400&fit=crop", tag: "Mecatrónica", likes: 34, liked: false, comments: 14, category: "oferta", createdAt: "2026-04-01",
+    offerSpecialty: "Mecatronica", offerDuration: "3 meses", offerPaid: true, offerSalary: "$320.000/mes", offerLocation: "Quilicura, Santiago",
+  },
+  {
+    id: "p14", title: "Técnico Soldador — AutoParts Ltda.",
+    description: "AutoParts Ltda. requiere soldadores TIG y MIG/MAG para línea de producción de repuestos automotrices. Turno fijo de lunes a viernes.",
+    author: "AutoParts Ltda.", authorAvatar: "https://images.unsplash.com/photo-1581091226033-d5c48150dbaa?w=100&h=100&fit=crop", authorRole: "Empresa",
+    image: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&h=400&fit=crop", tag: "Soldadura", likes: 19, liked: false, comments: 7, category: "oferta", createdAt: "2026-04-02",
+    offerSpecialty: "Soldadura", offerDuration: "Tiempo completo", offerPaid: true, offerSalary: "$580.000/mes", offerLocation: "Maipú, Santiago",
   },
   {
     id: "p11", title: "Planos Arquitectónicos con Revit — Proyecto Habitacional",
@@ -430,4 +516,19 @@ export const QUEUE_REQUESTS: QueueRequest[] = [
   { id: "q5", title: "Prácticas AutoParts Chile", description: "2 pasantes de Mecatrónica pendientes de asignación", author: "AutoParts Chile", urgent: true, type: "practica", date: "2026-03-20" },
   { id: "q6", title: "Alianza: Constructora Andina SpA", description: "Solicitud de alianza para especialidad de Construcción", author: "Constructora Andina SpA", urgent: false, type: "alianza", date: "2026-03-19" },
   { id: "q7", title: "Validación Badge Informática", description: "Javiera Muñoz solicita validación de insignia Informática Nivel I", author: "Javiera Muñoz", urgent: false, type: "certificacion", date: "2026-03-18" },
+];
+
+// ═══════════════════════════════════════════════
+// SCHOOL STUDENTS
+// ═══════════════════════════════════════════════
+
+export const SCHOOL_STUDENTS: SchoolStudent[] = [
+  { id: "ss1", name: "Felipe Castro", avatar: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=100&h=100&fit=crop&crop=face", specialty: "Mecatronica", grade: "3° Medio", attendance: 94, gpa: 86.0, availability: "Disponible", badgeCount: 4 },
+  { id: "ss2", name: "Sofia Vargas", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=face", specialty: "Soldadura", grade: "4° Medio", attendance: 97, gpa: 91.0, availability: "En prácticas", badgeCount: 6 },
+  { id: "ss3", name: "Valentina Ruiz", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face", specialty: "Electricidad", grade: "3° Medio", attendance: 88, gpa: 90.0, availability: "Disponible", badgeCount: 3 },
+  { id: "ss4", name: "Camila Ortiz", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face", specialty: "Ebanisteria", grade: "4° Medio", attendance: 92, gpa: 87.0, availability: "Disponible", badgeCount: 5 },
+  { id: "ss5", name: "Marco Rivera", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face", specialty: "Soldadura", grade: "4° Medio", attendance: 79, gpa: 88.0, availability: "Disponible", badgeCount: 2 },
+  { id: "ss6", name: "Lucas Espinoza", avatar: "https://images.unsplash.com/photo-1566753323558-f4e0952af115?w=100&h=100&fit=crop&crop=face", specialty: "Electricidad", grade: "2° Medio", attendance: 72, gpa: 84.0, availability: "Disponible", badgeCount: 1 },
+  { id: "ss7", name: "Javiera Muñoz", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face", specialty: "Mecatronica", grade: "3° Medio", attendance: 96, gpa: 89.0, availability: "Disponible", badgeCount: 4 },
+  { id: "ss8", name: "Bastián Torres", avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop&crop=face", specialty: "Ebanisteria", grade: "2° Medio", attendance: 85, gpa: 85.0, availability: "En prácticas", badgeCount: 2 },
 ];

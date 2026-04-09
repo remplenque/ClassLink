@@ -24,7 +24,7 @@ const LINKS = [
     path: "/talent",
     label: "Talento",
     icon: Users,
-    visibleFor: ["Estudiante", "Egresado", "Empresa", "Colegio"] as Role[],
+    visibleFor: ["Estudiante", "Egresado", "Empresa"] as Role[],
   },
   {
     path: "/",

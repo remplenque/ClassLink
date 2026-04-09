@@ -5,9 +5,14 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { profileEditSchema } from "@/lib/schemas";
+import { PROFILES, SCHOOL_STUDENTS } from "@/lib/data";
+import type { Vacancy, JobApplicant } from "@/lib/types";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
   GraduationCap, Lock, Globe, Building2, Users, TrendingUp,
+  Heart, Send, Circle, CheckCircle, FileText, User, Download,
+  Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Plus,
+  Search,
 } from "lucide-react";
 
 type Role = "Estudiante" | "Egresado" | "Empresa" | "Colegio";
@@ -56,6 +61,49 @@ export default function ProfilePage() {
   const [editWebsite,      setEditWebsite]      = useState("");
   const [editIndustry,     setEditIndustry]     = useState("");
 
+  // Inline edit mode (student)
+  const [isEditing,        setIsEditing]        = useState(false);
+  const [editSkills,       setEditSkills]       = useState("");
+  const [editSoftSkillsStr,setEditSoftSkillsStr]= useState("");
+  const [editBioInline,    setEditBioInline]    = useState("");
+  const [editLocationInline,setEditLocationInline] = useState("");
+
+  // Local student-specific data (from mock, editable locally)
+  const [localSoftSkills,  setLocalSoftSkills]  = useState<string[]>(PROFILES.student.softSkills ?? []);
+  const [localSkills,      setLocalSkills]      = useState<string[]>(PROFILES.student.skills ?? []);
+  const [localBio,         setLocalBio]         = useState<string | null>(null);
+  const [localLocation,    setLocalLocation]    = useState<string | null>(null);
+
+  // Company vacancies (local state from mock)
+  const [localVacancies,   setLocalVacancies]   = useState<Vacancy[]>(PROFILES.company.vacancies ?? []);
+  const [expandedVacancy,  setExpandedVacancy]  = useState<string | null>(null);
+  const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"accepted"|"rejected">>(() => {
+    const init: Record<string, "pending"|"accepted"|"rejected"> = {};
+    (PROFILES.company.vacancies ?? []).forEach((v) =>
+      v.applicants.forEach((a) => { init[a.id] = a.status; })
+    );
+    return init;
+  });
+  const [addVacancyOpen,   setAddVacancyOpen]   = useState(false);
+  const [newVacTitle,      setNewVacTitle]      = useState("");
+  const [newVacDept,       setNewVacDept]       = useState("");
+  const [newVacType,       setNewVacType]       = useState<"Pasantia"|"Tiempo completo"|"Part-time">("Pasantia");
+  const [newVacDuration,   setNewVacDuration]   = useState("");
+  const [newVacPaid,       setNewVacPaid]       = useState(true);
+  const [newVacSalary,     setNewVacSalary]     = useState("");
+  const [newVacDesc,       setNewVacDesc]       = useState("");
+
+  // Welcome onboarding popup
+  const [showOnboarding,   setShowOnboarding]   = useState(false);
+
+  // School students tab
+  const [schoolSearch,     setSchoolSearch]     = useState("");
+  const [schoolSpecialty,  setSchoolSpecialty]  = useState("Todos");
+
+  // Recommendation form
+  const [recFormTarget,    setRecFormTarget]    = useState<"colegio"|"empresa"|null>(null);
+  const [recMessage,       setRecMessage]       = useState("");
+
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true); setError(null);
@@ -100,6 +148,13 @@ export default function ProfilePage() {
     fetchPortfolio();
     fetchBadges();
   }, [fetchProfile, fetchPortfolio, fetchBadges]);
+
+  // Welcome popup for new accounts
+  useEffect(() => {
+    if (profile?.role === "Estudiante" && !localStorage.getItem("cl_onboarded")) {
+      setShowOnboarding(true);
+    }
+  }, [profile?.role]);
 
   const openEdit = () => {
     if (!profile) return;
@@ -222,7 +277,7 @@ export default function ProfilePage() {
   const getTabs = () => {
     if (isStudent) return ["Resumen", "Portafolio", "Insignias"];
     if (isCompany) return ["Resumen", "Vacantes", "Candidatos"];
-    return ["Resumen", "Estadísticas", "Solicitudes"];
+    return ["Resumen", "Mis Estudiantes", "Estadísticas", "Solicitudes"];
   };
 
   const gradientClass = isCompany ? "from-violet-500 via-purple-500 to-violet-700"
@@ -242,6 +297,78 @@ export default function ProfilePage() {
   const xpPct = profile.xp && profile.level
     ? Math.min(100, Math.round(((profile.xp % 500) / 500) * 100))
     : 0;
+
+  // ── Profile Completion (student) ──────────────────────────
+  const displayBio      = localBio      ?? profile.bio;
+  const displayLocation = localLocation ?? profile.location;
+  const displaySkills   = localSkills;
+
+  const completionItems = isStudent ? [
+    { label: "Foto de perfil",     done: !!profile.avatar,         weight: 0 },
+    { label: "Biografía",          done: !!displayBio,             weight: 15 },
+    { label: "Habilidades",        done: displaySkills.length > 0, weight: 15 },
+    { label: "Habilidades blandas",done: localSoftSkills.length > 0, weight: 15 },
+    { label: "Certificaciones",    done: (portfolio.length > 0),   weight: 10 },
+    { label: "Portafolio",         done: portfolio.length > 0,     weight: 20 },
+    { label: "Asistencia",         done: true,                     weight: 10 },
+    { label: "Promedio GPA",       done: profile.gpa != null,      weight: 15 },
+  ] : [];
+  const completionPct = isStudent
+    ? completionItems.reduce((acc, item) => acc + (item.done ? item.weight : 0), 0)
+    : 0;
+  const completionCircumference = 2 * Math.PI * 40; // r=40
+  const completionOffset = completionCircumference - (completionPct / 100) * completionCircumference;
+
+  // Inline edit helpers
+  const startInlineEdit = () => {
+    setEditBioInline(displayBio ?? "");
+    setEditLocationInline(displayLocation ?? "");
+    setEditSkills(displaySkills.join(", "));
+    setEditSoftSkillsStr(localSoftSkills.join(", "));
+    setIsEditing(true);
+  };
+  const saveInlineEdit = () => {
+    if (editBioInline !== displayBio)             setLocalBio(editBioInline);
+    if (editLocationInline !== displayLocation)   setLocalLocation(editLocationInline);
+    const parsedSkills = editSkills.split(",").map((s) => s.trim()).filter(Boolean);
+    const parsedSoft   = editSoftSkillsStr.split(",").map((s) => s.trim()).filter(Boolean);
+    setLocalSkills(parsedSkills);
+    setLocalSoftSkills(parsedSoft);
+    setIsEditing(false);
+  };
+
+  // Add vacancy helper
+  const addVacancy = () => {
+    if (!newVacTitle.trim()) return;
+    const v: Vacancy = {
+      id: `v-new-${Date.now()}`,
+      title: newVacTitle.trim(),
+      department: newVacDept.trim() || "General",
+      type: newVacType,
+      status: "Activa",
+      duration: newVacDuration.trim() || undefined,
+      paid: newVacPaid,
+      salary: newVacPaid && newVacSalary.trim() ? newVacSalary.trim() : undefined,
+      description: newVacDesc.trim() || undefined,
+      applicants: [],
+    };
+    setLocalVacancies((prev) => [v, ...prev]);
+    setNewVacTitle(""); setNewVacDept(""); setNewVacDuration("");
+    setNewVacSalary(""); setNewVacDesc("");
+    setAddVacancyOpen(false);
+  };
+
+  // School students filter
+  const filteredStudents = SCHOOL_STUDENTS.filter((s) => {
+    const matchSearch = schoolSearch === "" ||
+      s.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
+      s.specialty.toLowerCase().includes(schoolSearch.toLowerCase());
+    const matchSpec = schoolSpecialty === "Todos" || s.specialty === schoolSpecialty;
+    return matchSearch && matchSpec;
+  });
+  const avgAttendance = Math.round(SCHOOL_STUDENTS.reduce((a, s) => a + s.attendance, 0) / SCHOOL_STUDENTS.length);
+  const avgGpa        = (SCHOOL_STUDENTS.reduce((a, s) => a + s.gpa, 0) / SCHOOL_STUDENTS.length).toFixed(1);
+  const inPractice    = SCHOOL_STUDENTS.filter((s) => s.availability === "En prácticas").length;
 
   return (
     <PageLayout>
@@ -264,12 +391,38 @@ export default function ProfilePage() {
           {/* Cover Banner */}
           <div className={`h-44 md:h-80 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden relative`}>
             <div className="absolute inset-0 hero-pattern opacity-20" />
-            <button
-              onClick={openEdit}
-              className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press`}
-            >
-              <Edit size={14} /> Editar perfil
-            </button>
+            {isStudent ? (
+              isEditing ? (
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <button
+                    onClick={saveInlineEdit}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                  >
+                    <CheckCircle2 size={14} /> Guardar Cambios
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="flex items-center gap-1.5 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={startInlineEdit}
+                  className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press`}
+                >
+                  <Edit size={14} /> Editar perfil
+                </button>
+              )
+            ) : (
+              <button
+                onClick={openEdit}
+                className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press`}
+              >
+                <Edit size={14} /> Editar perfil
+              </button>
+            )}
           </div>
 
           {/* Avatar — centered on the banner's bottom edge (absolute) */}
@@ -318,9 +471,17 @@ export default function ProfilePage() {
             )}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm md:text-base text-slate-400">
               {profile.location && (
-                <span className="flex items-center gap-1.5"><MapPin size={16} />{profile.location}</span>
+                <span className="flex items-center gap-1.5"><MapPin size={16} />{displayLocation || profile.location}</span>
               )}
-              <span className="flex items-center gap-1.5"><Mail size={16} />{profile.email}</span>
+              {isCompany ? (
+                <span className="flex items-center gap-1.5">
+                  <Building2 size={16} />
+                  <span className="font-semibold text-slate-600">RUT Empresa:</span>&nbsp;
+                  {PROFILES.company.rut ?? profile.email}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5"><Mail size={16} />{profile.email}</span>
+              )}
               {isStudent && profile.specialty && (
                 <span className="flex items-center gap-1.5"><GraduationCap size={16} />{profile.specialty}</span>
               )}
@@ -440,6 +601,41 @@ export default function ProfilePage() {
 
             {isStudent && (
               <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                <h3 className="text-sm font-bold mb-3 text-slate-700">Completitud del Perfil</h3>
+                <div className="flex justify-center mb-3">
+                  <svg width="100" height="100" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                    <circle
+                      cx="50" cy="50" r="40" fill="none"
+                      stroke={completionPct >= 80 ? "#10b981" : completionPct >= 50 ? "#f59e0b" : "#ef4444"}
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray={completionCircumference}
+                      strokeDashoffset={completionOffset}
+                      transform="rotate(-90 50 50)"
+                      style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                    />
+                    <text x="50" y="55" textAnchor="middle" className="text-lg font-bold" fontSize="18" fontWeight="800" fill="#1e293b">
+                      {completionPct}%
+                    </text>
+                  </svg>
+                </div>
+                <div className="space-y-1.5">
+                  {completionItems.slice(0, 5).map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 text-xs">
+                      {item.done
+                        ? <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+                        : <Circle size={13} className="text-slate-300 shrink-0" />
+                      }
+                      <span className={item.done ? "text-slate-600" : "text-slate-400"}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isStudent && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
                 <h3 className="text-sm font-bold mb-3 text-slate-700">Progreso XP</h3>
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                   <span className="font-semibold">Nivel {profile.level ?? 1}</span>
@@ -477,6 +673,59 @@ export default function ProfilePage() {
             {/* ── Resumen ── */}
             {tab === "Resumen" && (
               <div className="space-y-4">
+
+                {/* ── Inline Edit Form (student only) ── */}
+                {isStudent && isEditing && (
+                  <div className="bg-white rounded-2xl p-5 border border-cyan-200 shadow-sm space-y-4">
+                    <h3 className="font-bold text-sm text-cyan-700 flex items-center gap-2"><Edit size={14} /> Editando Perfil</h3>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Biografía</label>
+                      <textarea
+                        value={editBioInline}
+                        onChange={(e) => setEditBioInline(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Ubicación</label>
+                      <input
+                        value={editLocationInline}
+                        onChange={(e) => setEditLocationInline(e.target.value)}
+                        placeholder="Ej: Santiago, Chile"
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Habilidades Técnicas (separadas por coma)</label>
+                      <input
+                        value={editSkills}
+                        onChange={(e) => setEditSkills(e.target.value)}
+                        placeholder="Arduino, Python, Soldadura TIG..."
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Habilidades Blandas (separadas por coma)</label>
+                      <input
+                        value={editSoftSkillsStr}
+                        onChange={(e) => setEditSoftSkillsStr(e.target.value)}
+                        placeholder="Trabajo en equipo, Puntualidad..."
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                      <button onClick={saveInlineEdit} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                        <CheckCircle2 size={15} /> Guardar Cambios
+                      </button>
+                      <button onClick={() => setIsEditing(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl font-bold text-sm transition-colors">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {isStudent && badges.length > 0 && (
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
                     <div className="flex items-center justify-between mb-4">
@@ -538,6 +787,138 @@ export default function ProfilePage() {
                   </div>
                 )}
 
+                {/* ── Student Habilidades Blandas ── */}
+                {isStudent && (
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Heart size={15} className="text-rose-500" />
+                      <h3 className="font-bold text-sm">Habilidades Blandas</h3>
+                    </div>
+                    {localSoftSkills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {localSoftSkills.map((s) => (
+                          <span key={s} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-100">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400">No hay habilidades blandas registradas.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Attendance Ring ── */}
+                {isStudent && (
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                    <h3 className="font-bold text-sm mb-4">Asistencia al Taller</h3>
+                    {(() => {
+                      const att = PROFILES.student.attendance ?? 0;
+                      const attColor = att >= 90 ? "#10b981" : att >= 75 ? "#f59e0b" : "#ef4444";
+                      const r = 40;
+                      const circ = 2 * Math.PI * r;
+                      const offset = circ - (att / 100) * circ;
+                      return (
+                        <div className="flex items-center gap-6">
+                          <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0">
+                            <circle cx="50" cy="50" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                            <circle cx="50" cy="50" r={r} fill="none" stroke={attColor} strokeWidth="10"
+                              strokeLinecap="round"
+                              strokeDasharray={circ} strokeDashoffset={offset}
+                              transform="rotate(-90 50 50)"
+                              style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                            />
+                            <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="800" fill="#1e293b">
+                              {att}%
+                            </text>
+                          </svg>
+                          <div>
+                            <p className="text-2xl font-extrabold" style={{ color: attColor }}>{att}%</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Asistencia al Taller</p>
+                            <p className="text-[11px] mt-2 font-medium" style={{ color: attColor }}>
+                              {att >= 90 ? "Excelente asistencia" : att >= 75 ? "Asistencia regular" : "Asistencia baja"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* ── School Report ── */}
+                {isStudent && (
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileText size={15} className="text-slate-500" />
+                      <h3 className="font-bold text-sm">Reporte del Colegio</h3>
+                    </div>
+                    {PROFILES.student.schoolReport ? (
+                      <>
+                        <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full mb-3">
+                          {PROFILES.student.schoolReport.period}
+                        </span>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs font-bold text-slate-600 mb-1">Resumen</p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{PROFILES.student.schoolReport.summary}</p>
+                          </div>
+                          <div className="border-l-4 border-amber-400 pl-4 bg-amber-50/40 py-2 rounded-r-xl">
+                            <p className="text-xs font-bold text-slate-600 mb-1">Comentario del Docente</p>
+                            <p className="text-sm text-slate-600 italic leading-relaxed">{PROFILES.student.schoolReport.teacherComment}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-600 mb-1">Nota de Conducta</p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{PROFILES.student.schoolReport.behaviorNote}</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-slate-400">El colegio aún no ha emitido un reporte.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Recommendation Request ── */}
+                {isStudent && (
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Send size={15} className="text-cyan-500" />
+                      <h3 className="font-bold text-sm">Solicitar Recomendación</h3>
+                    </div>
+                    <div className="flex gap-3 mb-4">
+                      <button
+                        onClick={() => setRecFormTarget(recFormTarget === "colegio" ? null : "colegio")}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-colors ${recFormTarget === "colegio" ? "border-cyan-500 text-cyan-700 bg-cyan-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                      >
+                        Pedir al Colegio
+                      </button>
+                      <button
+                        onClick={() => setRecFormTarget(recFormTarget === "empresa" ? null : "empresa")}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-colors ${recFormTarget === "empresa" ? "border-violet-500 text-violet-700 bg-violet-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                      >
+                        Pedir a una Empresa
+                      </button>
+                    </div>
+                    {recFormTarget && (
+                      <div className="space-y-3">
+                        <textarea
+                          value={recMessage}
+                          onChange={(e) => setRecMessage(e.target.value)}
+                          rows={3}
+                          placeholder={`Escribe tu mensaje para ${recFormTarget === "colegio" ? "el colegio" : "la empresa"}...`}
+                          className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none resize-none"
+                        />
+                        <button
+                          onClick={() => { setRecMessage(""); setRecFormTarget(null); }}
+                          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                        >
+                          Enviar Solicitud
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {isCompany && (
                   <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
                     <h3 className="font-bold text-sm mb-4">Vacantes Activas</h3>
@@ -550,7 +931,7 @@ export default function ProfilePage() {
                           <p className="font-bold text-violet-700">
                             {profile.open_positions} vacante{profile.open_positions > 1 ? "s" : ""} abierta{profile.open_positions > 1 ? "s" : ""}
                           </p>
-                          <p className="text-xs text-slate-500 mt-0.5">Gestiona tus ofertas en la sección Empleos</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Gestiona tus ofertas en la sección Vacantes</p>
                         </div>
                       </div>
                     ) : (
@@ -670,9 +1051,148 @@ export default function ProfilePage() {
 
             {/* ── Vacantes (Empresa) ── */}
             {tab === "Vacantes" && isCompany && (
-              <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                <Users size={44} className="mx-auto mb-3 text-slate-200" />
-                <p className="text-slate-400 font-medium">Gestión de vacantes próximamente.</p>
+              <div className="space-y-4">
+                {/* Header + Add button */}
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-700">Gestión de Vacantes</h3>
+                  <button
+                    onClick={() => setAddVacancyOpen(true)}
+                    className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                  >
+                    <Plus size={14} /> Agregar Vacante
+                  </button>
+                </div>
+
+                {/* Vacancy list */}
+                {localVacancies.map((v) => {
+                  const isExpanded = expandedVacancy === v.id;
+                  const pendingCount = v.applicants.filter((a) => (applicantStatuses[a.id] ?? a.status) === "pending").length;
+                  return (
+                    <div key={v.id} className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden">
+                      {/* Collapsed header */}
+                      <button
+                        onClick={() => setExpandedVacancy(isExpanded ? null : v.id)}
+                        className="w-full text-left p-5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h4 className="font-bold text-sm">{v.title}</h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${v.status === "Activa" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                {v.status}
+                              </span>
+                              <span className="text-[10px] font-semibold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">{v.type}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                              <span className="font-medium">{v.department}</span>
+                              {v.duration && (
+                                <span className="flex items-center gap-1"><Clock size={10} />{v.duration}</span>
+                              )}
+                              <span className={`flex items-center gap-1 font-semibold ${v.paid ? "text-emerald-600" : "text-amber-600"}`}>
+                                {v.paid ? `Remunerada${v.salary ? ` · ${v.salary}` : ""}` : "No remunerada"}
+                              </span>
+                              <span className="bg-slate-100 px-2 py-0.5 rounded-full">{v.applicants.length} postulantes</span>
+                              {pendingCount > 0 && (
+                                <span className="bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-full">{pendingCount} pendientes</span>
+                              )}
+                            </div>
+                          </div>
+                          {isExpanded ? <ChevronUp size={16} className="text-slate-400 shrink-0 mt-1" /> : <ChevronDown size={16} className="text-slate-400 shrink-0 mt-1" />}
+                        </div>
+                      </button>
+
+                      {/* Expanded detail */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 p-5 space-y-4">
+                          {v.description && (
+                            <div className="bg-slate-50 rounded-xl p-4">
+                              <p className="text-xs font-bold text-slate-600 mb-1.5">Descripción</p>
+                              <p className="text-sm text-slate-500 leading-relaxed">{v.description}</p>
+                              <div className="flex flex-wrap gap-3 mt-3 text-[11px]">
+                                {v.duration && <span className="flex items-center gap-1 font-semibold text-slate-600"><Clock size={11} /> {v.duration}</span>}
+                                <span className={`font-semibold ${v.paid ? "text-emerald-600" : "text-amber-600"}`}>
+                                  {v.paid ? `Remunerada${v.salary ? ` · ${v.salary}` : ""}` : "No remunerada"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <h5 className="font-bold text-sm mb-3">Postulantes</h5>
+                            {v.applicants.length === 0 ? (
+                              <p className="text-sm text-slate-400">No hay postulantes aún.</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {v.applicants.map((a) => {
+                                  const status = applicantStatuses[a.id] ?? a.status;
+                                  return (
+                                    <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                      {a.avatar ? (
+                                        <img src={a.avatar} alt={a.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                                          {a.name.charAt(0)}
+                                        </div>
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold truncate">{a.name}</p>
+                                        <p className="text-[11px] text-slate-400">{a.specialty}</p>
+                                      </div>
+                                      {/* Match score ring */}
+                                      <div className="shrink-0">
+                                        <svg width="40" height="40" viewBox="0 0 40 40">
+                                          <circle cx="20" cy="20" r="16" fill="none" stroke="#e2e8f0" strokeWidth="4" />
+                                          <circle cx="20" cy="20" r="16" fill="none"
+                                            stroke={a.matchScore >= 85 ? "#10b981" : a.matchScore >= 70 ? "#f59e0b" : "#94a3b8"}
+                                            strokeWidth="4" strokeLinecap="round"
+                                            strokeDasharray={2 * Math.PI * 16}
+                                            strokeDashoffset={2 * Math.PI * 16 - (a.matchScore / 100) * 2 * Math.PI * 16}
+                                            transform="rotate(-90 20 20)"
+                                          />
+                                          <text x="20" y="20" textAnchor="middle" dominantBaseline="central" fontSize="8" fontWeight="800" fill="#1e293b">
+                                            {a.matchScore}%
+                                          </text>
+                                        </svg>
+                                      </div>
+                                      {/* Action buttons / status badge */}
+                                      {status === "pending" ? (
+                                        <div className="flex gap-2 shrink-0">
+                                          <button
+                                            onClick={() => setApplicantStatuses((p) => ({ ...p, [a.id]: "accepted" }))}
+                                            className="flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                          >
+                                            <CheckCircle2 size={12} /> Aceptar
+                                          </button>
+                                          <button
+                                            onClick={() => setApplicantStatuses((p) => ({ ...p, [a.id]: "rejected" }))}
+                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                          >
+                                            <XCircle size={12} /> Rechazar
+                                          </button>
+                                        </div>
+                                      ) : status === "accepted" ? (
+                                        <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full shrink-0">Aceptado</span>
+                                      ) : (
+                                        <span className="text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 px-3 py-1 rounded-full shrink-0">Rechazado</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {localVacancies.length === 0 && (
+                  <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
+                    <Users size={44} className="mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">No hay vacantes. Agrega una nueva.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -681,6 +1201,99 @@ export default function ProfilePage() {
               <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
                 <Users size={44} className="mx-auto mb-3 text-slate-200" />
                 <p className="text-slate-400 font-medium">Candidatos próximamente.</p>
+              </div>
+            )}
+
+            {/* ── Mis Estudiantes (Colegio) ── */}
+            {tab === "Mis Estudiantes" && isSchool && (
+              <div className="space-y-4">
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
+                    <p className="text-2xl font-extrabold text-amber-600">{SCHOOL_STUDENTS.length}</p>
+                    <p className="text-xs text-slate-500 mt-1">Total estudiantes</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
+                    <p className="text-2xl font-extrabold text-emerald-600">{avgAttendance}%</p>
+                    <p className="text-xs text-slate-500 mt-1">Asistencia promedio</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
+                    <p className="text-2xl font-extrabold text-cyan-600">{avgGpa}</p>
+                    <p className="text-xs text-slate-500 mt-1">Promedio de notas</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200/60 text-center">
+                    <p className="text-2xl font-extrabold text-violet-600">{inPractice}</p>
+                    <p className="text-xs text-slate-500 mt-1">En práctica</p>
+                  </div>
+                </div>
+
+                {/* Search + specialty filter */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200/60 space-y-3">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={schoolSearch}
+                      onChange={(e) => setSchoolSearch(e.target.value)}
+                      placeholder="Buscar por nombre o especialidad..."
+                      className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {["Todos", "Mecatronica", "Electricidad", "Soldadura", "Ebanisteria"].map((sp) => (
+                      <button
+                        key={sp}
+                        onClick={() => setSchoolSpecialty(sp)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${schoolSpecialty === sp ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                      >
+                        {sp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Student list */}
+                <div className="space-y-2">
+                  {filteredStudents.map((s) => {
+                    const attColor = s.attendance >= 90 ? "bg-emerald-500" : s.attendance >= 75 ? "bg-amber-400" : "bg-red-400";
+                    const availColor = s.availability === "Disponible" ? "bg-emerald-50 text-emerald-700" : s.availability === "En prácticas" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500";
+                    return (
+                      <div key={s.id} className="bg-white rounded-2xl p-4 border border-slate-200/60 flex items-center gap-4">
+                        {s.avatar ? (
+                          <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
+                            {s.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <p className="text-sm font-bold truncate">{s.name}</p>
+                            <span className="text-[10px] text-slate-500">{s.grade}</span>
+                            <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s.specialty}</span>
+                          </div>
+                          {/* Attendance bar */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                              <div className={`h-full ${attColor} rounded-full transition-all`} style={{ width: `${s.attendance}%` }} />
+                            </div>
+                            <span className="text-[10px] text-slate-500">{s.attendance}%</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right space-y-1">
+                          <p className="text-sm font-bold text-slate-700">{s.gpa.toFixed(1)}</p>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${availColor}`}>{s.availability}</span>
+                          <p className="text-[10px] text-slate-400">{s.badgeCount} insignias</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredStudents.length === 0 && (
+                    <div className="text-center py-10 bg-white rounded-2xl border border-slate-200/60">
+                      <p className="text-slate-400">No se encontraron estudiantes.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -822,6 +1435,99 @@ export default function ProfilePage() {
           </button>
         </div>
       </Modal>
+
+      {/* ── Add Vacancy Modal ── */}
+      <Modal open={addVacancyOpen} onClose={() => setAddVacancyOpen(false)} title="Agregar Vacante">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Título del cargo</label>
+            <input value={newVacTitle} onChange={(e) => setNewVacTitle(e.target.value)} placeholder="Ej: Pasante Soldadura TIG"
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Departamento</label>
+              <input value={newVacDept} onChange={(e) => setNewVacDept(e.target.value)} placeholder="Ej: Producción"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Tipo</label>
+              <select value={newVacType} onChange={(e) => setNewVacType(e.target.value as any)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none bg-white">
+                <option value="Pasantia">Pasantía</option>
+                <option value="Tiempo completo">Tiempo completo</option>
+                <option value="Part-time">Part-time</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Duración</label>
+            <input value={newVacDuration} onChange={(e) => setNewVacDuration(e.target.value)} placeholder="Ej: 3 meses"
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Remuneración</label>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setNewVacPaid(true)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${newVacPaid ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-500 border-slate-200"}`}>Sí</button>
+              <button type="button" onClick={() => setNewVacPaid(false)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${!newVacPaid ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-500 border-slate-200"}`}>No</button>
+            </div>
+          </div>
+          {newVacPaid && (
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Salario</label>
+              <input value={newVacSalary} onChange={(e) => setNewVacSalary(e.target.value)} placeholder="Ej: $400.000/mes"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none" />
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Descripción</label>
+            <textarea value={newVacDesc} onChange={(e) => setNewVacDesc(e.target.value)} rows={3} placeholder="Describe el rol..."
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 focus:border-violet-400 outline-none resize-none" />
+          </div>
+          <button onClick={addVacancy} disabled={!newVacTitle.trim()}
+            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white py-3 rounded-xl font-bold text-sm transition-colors">
+            Agregar Vacante
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Welcome Onboarding Modal ── */}
+      {role === "Estudiante" && (
+        <Modal open={showOnboarding} onClose={() => { localStorage.setItem("cl_onboarded", "1"); setShowOnboarding(false); }} title="Bienvenido a ClassLink">
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {[
+                { num: 1, label: "Completa tu perfil", icon: <User size={20} className="text-cyan-600" /> },
+                { num: 2, label: "Gana tu primera insignia", icon: <Award size={20} className="text-amber-500" /> },
+                { num: 3, label: "Descarga tu CV público", icon: <Download size={20} className="text-violet-600" /> },
+              ].map((step) => (
+                <div key={step.num} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-sm font-extrabold text-cyan-700 shrink-0">
+                    {step.num}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{step.label}</p>
+                  </div>
+                  {step.icon}
+                </div>
+              ))}
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-amber-700 font-medium">
+                ⚠️ Recuerda cambiar tu contraseña temporal antes de continuar.
+              </p>
+            </div>
+            <button
+              onClick={() => { localStorage.setItem("cl_onboarded", "1"); setShowOnboarding(false); }}
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-xl font-bold text-sm transition-colors"
+            >
+              Empezar
+            </button>
+          </div>
+        </Modal>
+      )}
     </PageLayout>
   );
 }
