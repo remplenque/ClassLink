@@ -6,6 +6,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Contraseña requerida"),
 });
 
+// Only Empresa and Colegio can self-register.
+// Students are created exclusively by their school via the admin Server Action.
 export const registerSchema = z.object({
   name:     z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100),
   email:    z.string().email("Email inválido"),
@@ -14,10 +16,24 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Debe incluir al menos un número")
     .regex(/[^a-zA-Z0-9]/, "Debe incluir al menos un carácter especial"),
   confirmPassword: z.string(),
-  role: z.enum(["Estudiante", "Egresado", "Empresa", "Colegio"]),
+  role: z.enum(["Empresa", "Colegio"], {
+    errorMap: () => ({ message: "Solo Empresa y Colegio pueden registrarse aquí." }),
+  }),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
+});
+
+// School creates a student account
+export const createStudentSchema = z.object({
+  firstName:    z.string().min(2, "Nombre muy corto").max(50),
+  lastName:     z.string().min(2, "Apellido muy corto").max(50),
+  email:        z.string().email("Email inválido"),
+  tempPassword: z.string()
+    .min(8,  "Mínimo 8 caracteres")
+    .max(72, "Máximo 72 caracteres"),
+  specialty: z.string().max(100).optional(),
+  grade:     z.string().max(20).optional(),
 });
 
 // ── Profile ─────────────────────────────────────────────────

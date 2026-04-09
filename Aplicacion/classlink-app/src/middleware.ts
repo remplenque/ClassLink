@@ -8,6 +8,9 @@ import { NextResponse, type NextRequest } from "next/server";
 // Routes that are publicly accessible without a session
 const PUBLIC_ROUTES = ["/login", "/register", "/api/health", "/api/seed"];
 
+// Routes the user can visit even while must_change_password is active
+const CHANGE_PASSWORD_ALLOWED = ["/change-password", "/api/health"];
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -50,6 +53,17 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
+  }
+
+  // Force password change for students created by a school
+  if (session) {
+    const mustChange = session.user.app_metadata?.must_change_password === true;
+    const onAllowedRoute = CHANGE_PASSWORD_ALLOWED.some((r) => pathname.startsWith(r));
+    if (mustChange && !onAllowedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/change-password";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

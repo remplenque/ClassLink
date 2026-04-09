@@ -13,11 +13,11 @@ import type { Role } from "@/lib/types";
 import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import { registerSchema } from "@/lib/schemas";
 
+// Only organizations can self-register.
+// Students are created exclusively by their school via the admin panel.
 const ROLES: { value: Role; label: string; emoji: string }[] = [
-  { value: "Estudiante", label: "Estudiante",  emoji: "🎓" },
-  { value: "Egresado",   label: "Egresado",    emoji: "💼" },
-  { value: "Empresa",    label: "Empresa",      emoji: "🏢" },
-  { value: "Colegio",    label: "Colegio",      emoji: "🏫" },
+  { value: "Empresa", label: "Empresa", emoji: "🏢" },
+  { value: "Colegio", label: "Colegio", emoji: "🏫" },
 ];
 
 export default function RegisterPage() {
@@ -28,7 +28,7 @@ export default function RegisterPage() {
   const [email,        setEmail]        = useState("");
   const [password,     setPassword]     = useState("");
   const [confirm,      setConfirm]      = useState("");
-  const [role,         setRole]         = useState<Role>("Estudiante");
+  const [role,         setRole]         = useState<Role>("Empresa");
   const [showPass,     setShowPass]     = useState(false);
   const [error,        setError]        = useState("");
   const [success,      setSuccess]      = useState(false);
@@ -92,10 +92,10 @@ export default function RegisterPage() {
                 <span className="text-white font-bold text-xl tracking-tight">ClassLink</span>
               </div>
               <h1 className="text-2xl font-extrabold text-white tracking-tight">
-                Crear cuenta
+                Registro de organización
               </h1>
               <p className="text-cyan-100 text-sm mt-1">
-                Únete a la comunidad vocacional
+                Solo Empresas y Colegios pueden registrarse aquí
               </p>
             </div>
           </div>
