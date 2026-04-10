@@ -30,6 +30,6 @@ DROP INDEX IF EXISTS idx_xp_events_user;
 DROP INDEX IF EXISTS idx_xp_events_type;
 DROP INDEX IF EXISTS idx_user_badges_user;
 
--- Restore original permissive policies (re-run supabase_schema.sql to restore)
+-- Restore original permissive policies (re-run supabase/schema.sql to restore)
 -- WARNING: This will remove all data protection added above.
--- After running this, re-apply supabase_schema.sql from the repo root.
+-- After running this, re-apply supabase/schema.sql from the repo root.
