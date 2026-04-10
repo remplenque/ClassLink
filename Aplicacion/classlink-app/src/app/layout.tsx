@@ -11,6 +11,8 @@
 // ambient effect works on every page including /login.
 // ──────────────────────────────────────────────────────────
 
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider }  from "@/lib/auth-context";

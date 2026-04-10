@@ -55,18 +55,78 @@ export interface UserProfile {
   yearsExperience?:  number;
   portfolio?:        PortfolioItem[];
 
+  /* ─ Student soft skills & academic data ─ */
+  softSkills?:    string[];
+  attendance?:    number;           // 0–100 percentage
+  schoolReport?:  SchoolReport;
+
   /* ─ Company specific ─ */
+  rut?:          string;
   companyName?:  string;
   industry?:     string;
   employeeCount?: string;           // e.g. "250+" — stored as string for display
   website?:      string;
   openPositions?: number;
+  vacancies?:    Vacancy[];
 
   /* ─ School specific ─ */
   schoolName?:        string;
   studentCount?:      number;
   allianceCount?:     number;
   employabilityRate?: number;       // percentage 0–100
+}
+
+/**
+ * Academic report issued by the school for a student.
+ */
+export interface SchoolReport {
+  period:         string;
+  summary:        string;
+  teacherComment: string;
+  behaviorNote:   string;
+}
+
+/**
+ * A job applicant for a company vacancy.
+ */
+export interface JobApplicant {
+  id:         string;
+  name:       string;
+  avatar:     string;
+  specialty:  string;
+  matchScore: number;
+  status:     "pending" | "accepted" | "rejected";
+}
+
+/**
+ * A company vacancy / internship posting.
+ */
+export interface Vacancy {
+  id:          string;
+  title:       string;
+  department:  string;
+  type:        "Pasantia" | "Tiempo completo" | "Part-time";
+  status:      "Activa" | "Cerrada";
+  duration?:   string;
+  paid:        boolean;
+  salary?:     string;
+  description?: string;
+  applicants:  JobApplicant[];
+}
+
+/**
+ * A student entry in the school's student roster.
+ */
+export interface SchoolStudent {
+  id:           string;
+  name:         string;
+  avatar:       string;
+  specialty:    string;
+  grade:        string;
+  attendance:   number;
+  gpa:          number;
+  availability: "Disponible" | "En prácticas" | "No disponible";
+  badgeCount:   number;
 }
 
 /**
@@ -102,6 +162,8 @@ export interface AppNotification {
   read:        boolean;
   /** Which roles should see this notification */
   forRoles:    Role[];
+  /** Notification category/type (e.g. "badge", "message", "job") */
+  type?:       string;
 }
 
 /* ── 4. Social Feed ─────────────────────────────────────── */
@@ -128,9 +190,15 @@ export interface FeedPost {
   /** Whether the current viewer has liked this post */
   liked:       boolean;
   comments:    number;
-  category:    "publicacion" | "portafolio";
+  category:    "publicacion" | "portafolio" | "evento" | "oferta";
   /** ISO date string (YYYY-MM-DD) */
   createdAt:   string;
+  /* ─ Offer-specific fields (only when category === "oferta") ─ */
+  offerSpecialty?: string;
+  offerDuration?:  string;
+  offerPaid?:      boolean;
+  offerSalary?:    string;
+  offerLocation?:  string;
 }
 
 /* ── 5. Talent Directory ────────────────────────────────── */
