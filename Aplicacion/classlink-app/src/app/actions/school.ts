@@ -71,20 +71,25 @@ export async function createStudent(formData: {
     return { error: msg };
   }
 
-  // 4. Insert profile row
+  // 4. Upsert profile row.
+  // Supabase may fire an on_auth_user_created trigger that pre-inserts a row,
+  // so we use upsert (ON CONFLICT DO UPDATE) to avoid the profiles_pkey
+  // duplicate-key violation that would otherwise occur.
   const { error: insertErr } = await admin
     .from("profiles")
-    .insert({
-      id:           newUser.user.id,
-      name:         fullName,
-      email:        parsed.data.email.trim(),
-      role:         "Estudiante",
-      school_id:    schoolId,
-      specialty:    parsed.data.specialty ?? null,
-      grade:        parsed.data.grade ?? null,
-      created_at:   new Date().toISOString(),
-      updated_at:   new Date().toISOString(),
-    });
+    .upsert(
+      {
+        id:        newUser.user.id,
+        name:      fullName,
+        email:     parsed.data.email.trim(),
+        role:      "Estudiante",
+        school_id: schoolId,
+        specialty: parsed.data.specialty ?? null,
+        grade:     parsed.data.grade ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
 
   if (insertErr) {
     // Roll back: delete the auth user we just created

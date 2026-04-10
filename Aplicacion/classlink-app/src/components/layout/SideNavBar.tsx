@@ -11,6 +11,7 @@ import type { Role } from "@/lib/types";
 import ConfigModal from "@/components/ui/ConfigModal";
 import {
   LayoutDashboard, Newspaper, Users, MessageCircle, User, Settings, Briefcase,
+  LayoutGrid,
 } from "lucide-react";
 
 const LINKS = [
@@ -19,6 +20,12 @@ const LINKS = [
     label: "El Muro",
     icon: Newspaper,
     visibleFor: ["Estudiante", "Egresado", "Empresa", "Colegio"] as Role[],
+  },
+  {
+    path: "/administracion",
+    label: "Administración",
+    icon: LayoutGrid,
+    visibleFor: ["Colegio"] as Role[],
   },
   {
     path: "/talent",

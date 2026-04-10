@@ -16,9 +16,10 @@ async function getCallerCompany(supabase: ReturnType<typeof createServerSupabase
 
 // ── updateApplicationStatus ──────────────────────────────
 // Accept or reject a job application. Notifies the student.
+// Status values are English to match the DB constraint added in migration 20260410000002.
 export async function updateApplicationStatus(
   applicationId: string,
-  newStatus: "aceptado" | "rechazado",
+  newStatus: "accepted" | "rejected",
   studentId:     string,
   jobTitle:      string
 ) {
@@ -49,7 +50,7 @@ export async function updateApplicationStatus(
   if (updateErr) return { error: updateErr.message };
 
   const display = company.company_name || company.name || "La empresa";
-  const isAccepted = newStatus === "aceptado";
+  const isAccepted = newStatus === "accepted";
 
   await admin.from("notifications").insert({
     user_id:    studentId,
@@ -62,6 +63,54 @@ export async function updateApplicationStatus(
     created_at: now,
   });
 
+  return { success: true };
+}
+
+// ── updateApplicationStatusSA ────────────────────────────
+// Server-side status update with max_candidates enforcement.
+// Called from the /empleos company applicant panel.
+export async function updateApplicationStatusSA(
+  applicationId: string,
+  jobId:         string,
+  newStatus:     "accepted" | "rejected" | "hired"
+) {
+  if (!applicationId || !jobId) return { error: "Parámetros inválidos." };
+
+  const cookieStore = await cookies();
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+  const company = await getCallerCompany(supabase);
+  if (!company) return { error: "Acceso denegado." };
+
+  // Verify the job belongs to this company and get max_candidates
+  const { data: posting } = await supabase
+    .from("job_postings")
+    .select("company_id, max_candidates")
+    .eq("id", jobId)
+    .eq("company_id", company.userId)
+    .single();
+
+  if (!posting) return { error: "Vacante no encontrada o acceso denegado." };
+
+  // Enforce max_candidates when accepting (not when rejecting or hiring)
+  if (newStatus === "accepted" && posting.max_candidates != null) {
+    const { count } = await supabase
+      .from("job_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("job_id", jobId)
+      .in("status", ["accepted", "hired"]);
+
+    if ((count ?? 0) >= posting.max_candidates) {
+      return { error: `Límite de ${posting.max_candidates} candidatos alcanzado. Rechaza alguno para aceptar nuevos.` };
+    }
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("job_applications")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", applicationId);
+
+  if (error) return { error: error.message };
   return { success: true };
 }
 
@@ -103,7 +152,7 @@ export async function createInternshipRequest(
     title:      data.urgent ? "⚠️ Solicitud urgente de empresa" : "Nueva solicitud de empresa",
     body:       `${display} solicita ${data.slots} alumno(s)${data.specialty ? ` de ${data.specialty}` : ""}. Revisa tus Solicitudes.`,
     type:       "practica",
-    link:       "/profile",
+    link:       "/administracion",
     created_at: now,
   });
 

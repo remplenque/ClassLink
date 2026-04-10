@@ -27,8 +27,19 @@ const DEMO_USERS: DemoUser[] = [
   { email: "google@demo.cr",  name: "Google CR",                role: "Empresa"    },
 ];
 
-export async function POST() {
+export async function POST(request: Request) {
   const log: string[] = [];
+
+  // ── Guard: require x-seed-secret header ───────────────────────────
+  // In production, always set SEED_SECRET in your environment variables.
+  // Without it this endpoint is open to unauthenticated callers.
+  const envSecret = process.env.SEED_SECRET;
+  if (envSecret) {
+    const provided = request.headers.get("x-seed-secret");
+    if (provided !== envSecret) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   // Validate env vars before doing anything — returns clear JSON on misconfiguration
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

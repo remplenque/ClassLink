@@ -41,6 +41,7 @@ export default function MuroPage() {
   const { role } = useRole();
 
   const [posts,       setPosts]       = useState<FeedPost[]>([]);
+  const [jobPosts,    setJobPosts]    = useState<FeedPost[]>([]);
   const [tab,         setTab]         = useState<string>("Todos");
   const [tagFilter,   setTagFilter]   = useState("Todos");
   const [search,      setSearch]      = useState("");
@@ -117,6 +118,39 @@ export default function MuroPage() {
     setIsFetching(false);
   }, [user?.id]);
 
+  // ── Fetch job postings for "Ofertas de Trabajo" tab ──
+
+  const fetchJobPostings = useCallback(async () => {
+    const { data } = await supabase
+      .from("job_postings")
+      .select("id, title, description, location, type, specialty, active, created_at, profiles!job_postings_company_id_fkey(name, avatar)")
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const mapped: FeedPost[] = (data ?? []).map((j: any) => ({
+      id:           `jp-${j.id}`,
+      title:        j.title,
+      description:  j.description ?? "",
+      content:      j.description ?? "",
+      author:       j.id,
+      authorName:   j.profiles?.name ?? "Empresa",
+      authorAvatar: j.profiles?.avatar ?? "",
+      authorRole:   "Empresa" as const,
+      image:        "",
+      tag:          j.specialty ?? "Oferta Laboral",
+      likes:        0,
+      liked:        false,
+      comments:     0,
+      category:     "oferta" as const,
+      createdAt:    (j.created_at ?? "").split("T")[0],
+      offerSpecialty: j.specialty ?? "",
+      offerLocation:  j.location ?? "",
+      offerPaid:      true,
+    }));
+    setJobPosts(mapped);
+  }, []);
+
   // ── Fetch active members ───────────────────────────────
 
   const fetchMembers = useCallback(async () => {
@@ -130,8 +164,9 @@ export default function MuroPage() {
 
   useEffect(() => {
     fetchPosts();
+    fetchJobPostings();
     fetchMembers();
-  }, [fetchPosts, fetchMembers]);
+  }, [fetchPosts, fetchJobPostings, fetchMembers]);
 
   // ── Media selection ────────────────────────────────────
 
@@ -278,9 +313,14 @@ export default function MuroPage() {
 
   // ── Filtering ──────────────────────────────────────────
 
-  const offerCount = posts.filter((p) => p.category === "oferta").length;
+  // Merge job_postings into the "Ofertas de Trabajo" source pool
+  const allPosts = tab === "Ofertas de Trabajo"
+    ? [...posts.filter((p) => p.category === "oferta"), ...jobPosts]
+    : posts;
 
-  const filtered = posts.filter((p) => {
+  const offerCount = posts.filter((p) => p.category === "oferta").length + jobPosts.length;
+
+  const filtered = allPosts.filter((p) => {
     const matchTab =
       tab === "Todos" ||
       (tab === "Portafolios"       && p.category === "portafolio") ||
