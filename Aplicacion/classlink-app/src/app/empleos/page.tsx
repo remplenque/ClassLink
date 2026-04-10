@@ -7,6 +7,7 @@ import { useRole } from "@/lib/role-context";
 import { supabase } from "@/lib/supabase";
 import { jobPostingSchema } from "@/lib/schemas";
 import { updateApplicationStatusSA } from "@/app/actions/company";
+import { TP_SPECIALTIES } from "@/lib/specialties";
 import {
   Briefcase, MapPin, Plus, Loader2, ChevronDown, X, Send, CheckCircle,
   Users, CheckCircle2, XCircle, ArrowUp, ArrowDown, Trophy,
@@ -512,10 +513,9 @@ export default function EmpleosPage() {
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Especialidad</label>
               <select value={fSpecialty} onChange={(e) => setFSpecialty(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white">
                 <option value="">Todas</option>
-                <option>Mecatrónica</option>
-                <option>Electricidad</option>
-                <option>Soldadura</option>
-                <option>Ebanistería</option>
+                {TP_SPECIALTIES.map((sp) => (
+                  <option key={sp} value={sp}>{sp}</option>
+                ))}
               </select>
             </div>
           </div>

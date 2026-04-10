@@ -16,15 +16,11 @@ import {
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
+import { TP_SPECIALTIES, TAG_FILTERS } from "@/lib/specialties";
 
 // ── Constants ─────────────────────────────────────────────
 
 const TABS = ["Todos", "Portafolios", "Eventos", "Ofertas de Trabajo"] as const;
-
-const TAG_FILTERS = [
-  "Todos", "Mecatrónica", "Electricidad", "Soldadura TIG", "Ebanistería",
-  "Refrigeración", "Informática", "Construcción", "Automotriz", "Evento", "Oferta Laboral",
-];
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".avi", ".mkv"];
 
@@ -53,10 +49,10 @@ export default function MuroPage() {
   // New post form fields
   const [newTitle,          setNewTitle]          = useState("");
   const [newDesc,           setNewDesc]           = useState("");
-  const [newTag,            setNewTag]            = useState("Mecatrónica");
+  const [newTag,            setNewTag]            = useState<string>(TP_SPECIALTIES[0]);
   const [newCategory,       setNewCategory]       = useState<"publicacion" | "portafolio" | "oferta">("publicacion");
   // Offer-specific fields
-  const [offerSpecialty,    setOfferSpecialty]    = useState("Mecatronica");
+  const [offerSpecialty,    setOfferSpecialty]    = useState<string>(TP_SPECIALTIES[0]);
   const [offerDuration,     setOfferDuration]     = useState("");
   const [offerPaid,         setOfferPaid]         = useState(true);
   const [offerSalary,       setOfferSalary]       = useState("");
@@ -294,7 +290,7 @@ export default function MuroPage() {
     // Reset form
     setNewTitle("");
     setNewDesc("");
-    setOfferSpecialty("Mecatronica");
+    setOfferSpecialty(TP_SPECIALTIES[0]);
     setOfferDuration("");
     setOfferPaid(true);
     setOfferSalary("");
@@ -334,14 +330,14 @@ export default function MuroPage() {
   });
 
   const trendingTags = [
-    { name: "Mecatrónica",   posts: 24 },
-    { name: "Soldadura TIG", posts: 18 },
-    { name: "Electricidad",  posts: 15 },
-    { name: "Ebanistería",   posts: 11 },
-    { name: "Construcción",  posts:  9 },
-    { name: "Automotriz",    posts:  8 },
-    { name: "Refrigeración", posts:  7 },
-    { name: "Evento",        posts:  6 },
+    { name: "Mecatrónica",                 posts: 24 },
+    { name: "Soldadura",                   posts: 18 },
+    { name: "Electricidad",                posts: 15 },
+    { name: "Ebanistería",                 posts: 11 },
+    { name: "Construcción",                posts:  9 },
+    { name: "Mecánica Automotriz",         posts:  8 },
+    { name: "Refrigeración y Climatización", posts: 7 },
+    { name: "Evento",                      posts:  6 },
   ];
 
   // ── Render ────────────────────────────────────────────
@@ -820,10 +816,9 @@ export default function MuroPage() {
                   onChange={(e) => setOfferSpecialty(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none bg-white"
                 >
-                  <option value="Mecatronica">Mecatrónica</option>
-                  <option value="Electricidad">Electricidad</option>
-                  <option value="Soldadura">Soldadura</option>
-                  <option value="Ebanisteria">Ebanistería</option>
+                  {TP_SPECIALTIES.map((sp) => (
+                    <option key={sp} value={sp}>{sp}</option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">

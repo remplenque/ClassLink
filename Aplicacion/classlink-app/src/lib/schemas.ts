@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { POST_TAGS } from "./specialties";
 
 // ── Auth ────────────────────────────────────────────────────
 export const loginSchema = z.object({
@@ -51,7 +52,7 @@ export const profileEditSchema = z.object({
 export const postSchema = z.object({
   title:       z.string().min(3, "El título es demasiado corto").max(120),
   description: z.string().max(2000).optional(),
-  tag:         z.enum(["Soldadura TIG", "Ebanistería", "Mecatrónica", "Electricidad", "Evento"]),
+  tag:         z.enum(POST_TAGS as unknown as [string, ...string[]]),
   category:    z.enum(["publicacion", "portafolio"]),
 });
 

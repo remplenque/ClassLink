@@ -21,6 +21,7 @@ import {
   GraduationCap, Plus, Search, TrendingUp, Users, FileText,
   Loader2, CheckCircle2, XCircle, ChevronRight,
 } from "lucide-react";
+import { TP_SPECIALTIES } from "@/lib/specialties";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -333,7 +334,7 @@ export default function AdministracionPage() {
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {["Todos", "Mecatronica", "Electricidad", "Soldadura", "Ebanisteria", "Informática"].map((sp) => (
+                {["Todos", ...TP_SPECIALTIES].map((sp) => (
                   <button
                     key={sp}
                     onClick={() => setSchoolSpecialty(sp)}
@@ -888,14 +889,9 @@ export default function AdministracionPage() {
                 className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none bg-white"
               >
                 <option value="">Sin especialidad</option>
-                <option>Mecatrónica</option>
-                <option>Electricidad</option>
-                <option>Soldadura</option>
-                <option>Ebanistería</option>
-                <option>Informática</option>
-                <option>Refrigeración</option>
-                <option>Construcción</option>
-                <option>Automotriz</option>
+                {TP_SPECIALTIES.map((sp) => (
+                  <option key={sp} value={sp}>{sp}</option>
+                ))}
               </select>
             </div>
             <div>
