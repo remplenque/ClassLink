@@ -27,8 +27,7 @@ export async function createStudent(formData: {
 
   // 2. Verify caller is an authenticated Colegio
   const cookieStore = await cookies();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServerSupabaseClient(cookieStore as any);
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user: caller }, error: sessionErr } = await supabase.auth.getUser();
 
   if (sessionErr || !caller) {
@@ -101,8 +100,7 @@ export async function createStudent(formData: {
 // Removes the must_change_password flag from app_metadata.
 export async function clearMustChangePassword() {
   const cookieStore = await cookies();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServerSupabaseClient(cookieStore as any);
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user }, error: sessionErr } = await supabase.auth.getUser();
 
   if (sessionErr || !user) return { error: "No autenticado." };
@@ -125,8 +123,7 @@ export async function graduateStudent(studentId: string) {
   if (!studentId) return { error: "ID inválido." };
 
   const cookieStore = await cookies();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServerSupabaseClient(cookieStore as any);
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user: caller }, error: sessionErr } = await supabase.auth.getUser();
 
   if (sessionErr || !caller) return { error: "No autenticado." };

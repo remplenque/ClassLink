@@ -1484,7 +1484,7 @@ export default function ProfilePage() {
                       <div className="text-center py-12 bg-white rounded-2xl border border-slate-200/60">
                         <GraduationCap size={40} className="mx-auto mb-3 text-slate-200" />
                         <p className="text-slate-400 font-medium">No hay estudiantes registrados.</p>
-                        <p className="text-xs text-slate-400 mt-1">Usa "Agregar Alumno" para crear el primer estudiante.</p>
+                        <p className="text-xs text-slate-400 mt-1">Usa &ldquo;Agregar Alumno&rdquo; para crear el primer estudiante.</p>
                       </div>
                     )}
                   </div>

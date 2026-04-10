@@ -17,7 +17,7 @@ export const registerSchema = z.object({
     .regex(/[^a-zA-Z0-9]/, "Debe incluir al menos un carácter especial"),
   confirmPassword: z.string(),
   role: z.enum(["Empresa", "Colegio"], {
-    errorMap: () => ({ message: "Solo Empresa y Colegio pueden registrarse aquí." }),
+    error: () => ({ message: "Solo Empresa y Colegio pueden registrarse aquí." }),
   }),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Las contraseñas no coinciden",

@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^10.47.0",
-    "@supabase/ssr": "^0.10.0",
+    "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.100.1",
     "@types/dompurify": "^3.0.5",
     "browser-image-compression": "^2.0.2",
-    "isomorphic-dompurify": "^3.7.1",
+    "isomorphic-dompurify": "^3.8.0",
     "lucide-react": "^1.0.1",
     "next": "^14.2.0",
     "pino": "^10.3.1",
