@@ -16,15 +16,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRole } from "@/lib/role-context";
-import { LayoutDashboard, Newspaper, Users, MessageCircle, User } from "lucide-react";
+import { LayoutDashboard, Newspaper, Users, MessageCircle, User, LayoutGrid } from "lucide-react";
 
-// All tabs — Talento filtered out for Colegio below
+// All tabs — filtered per role below
 const ALL_LINKS = [
-  { path: "/muro",     label: "Muro",    icon: Newspaper,       roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
-  { path: "/talent",   label: "Talento", icon: Users,           roles: ["Estudiante", "Egresado", "Empresa"] },
-  { path: "/",         label: "Home",    icon: LayoutDashboard, roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
-  { path: "/messages", label: "Chat",    icon: MessageCircle,   roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
-  { path: "/profile",  label: "Perfil",  icon: User,            roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/muro",          label: "Muro",    icon: Newspaper,       roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/administracion",label: "Admin",   icon: LayoutGrid,      roles: ["Colegio"] },
+  { path: "/talent",        label: "Talento", icon: Users,           roles: ["Estudiante", "Egresado", "Empresa"] },
+  { path: "/",              label: "Home",    icon: LayoutDashboard, roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/messages",      label: "Chat",    icon: MessageCircle,   roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
+  { path: "/profile",       label: "Perfil",  icon: User,            roles: ["Estudiante", "Egresado", "Empresa", "Colegio"] },
 ];
 
 export default function BottomMobileNav() {

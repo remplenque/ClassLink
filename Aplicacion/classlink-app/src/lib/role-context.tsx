@@ -86,7 +86,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, role]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read && !readIds.has(n.id)).length,
