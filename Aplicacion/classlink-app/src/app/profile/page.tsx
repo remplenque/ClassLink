@@ -816,22 +816,16 @@ export default function ProfilePage() {
                 )}
                 {isSchool && (
                   <>
-                    {profile.student_count != null && (
-                      <div>
-                        <p className="text-xs text-slate-400 mb-0.5">Estudiantes</p>
-                        <p className="text-sm font-semibold text-slate-700">{profile.student_count}</p>
-                      </div>
-                    )}
                     {profile.alliance_count > 0 && (
                       <div>
-                        <p className="text-xs text-slate-400 mb-0.5">Alianzas</p>
+                        <p className="text-xs text-slate-400 mb-0.5">Alianzas empresariales</p>
                         <p className="text-sm font-semibold text-slate-700">{profile.alliance_count}</p>
                       </div>
                     )}
-                    {profile.employability_rate != null && (
+                    {profile.location && (
                       <div>
-                        <p className="text-xs text-slate-400 mb-0.5">Empleabilidad</p>
-                        <p className="text-lg font-extrabold text-emerald-600">{profile.employability_rate}%</p>
+                        <p className="text-xs text-slate-400 mb-0.5">Ubicación</p>
+                        <p className="text-sm font-semibold text-slate-700">{profile.location}</p>
                       </div>
                     )}
                   </>
@@ -870,6 +864,141 @@ export default function ProfilePage() {
                       <span className={item.done ? "text-slate-600" : "text-slate-400"}>{item.label}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── School Sidebar: Employability Ring ── */}
+            {isSchool && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                <h3 className="text-sm font-bold mb-4 text-slate-700">Tasa de Empleabilidad</h3>
+                {(() => {
+                  const rate = profile.employability_rate ?? 0;
+                  const r = 42, circ = 2 * Math.PI * r;
+                  const offset = circ - (rate / 100) * circ;
+                  const color = rate >= 80 ? "#10b981" : rate >= 60 ? "#f59e0b" : "#ef4444";
+                  const label = rate >= 80 ? "Excelente" : rate >= 60 ? "Buena" : rate > 0 ? "En desarrollo" : "Sin datos";
+                  return (
+                    <div className="flex flex-col items-center gap-3">
+                      <svg width="110" height="110" viewBox="0 0 110 110">
+                        <circle cx="55" cy="55" r={r} fill="none" stroke="#f1f5f9" strokeWidth="11" />
+                        <circle cx="55" cy="55" r={r} fill="none" stroke={color} strokeWidth="11"
+                          strokeLinecap="round"
+                          strokeDasharray={circ} strokeDashoffset={offset}
+                          transform="rotate(-90 55 55)"
+                          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+                        />
+                        <text x="55" y="51" textAnchor="middle" fontSize="20" fontWeight="800" fill="#1e293b">{rate}%</text>
+                        <text x="55" y="66" textAnchor="middle" fontSize="9" fill="#94a3b8">empleabilidad</text>
+                      </svg>
+                      <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: `${color}18`, color }}>{label}</span>
+                      {profile.student_count != null && (
+                        <p className="text-[11px] text-slate-400 text-center">{profile.student_count} estudiantes matriculados</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ── School Sidebar: Live Student Stats ── */}
+            {isSchool && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-slate-700">Estudiantes</h3>
+                  {dbStudents.length === 0 && (
+                    <button onClick={fetchStudents} className="text-[10px] text-amber-600 hover:underline font-semibold">cargar</button>
+                  )}
+                </div>
+                {studentsLoading ? (
+                  <div className="flex justify-center py-3"><Loader2 size={16} className="animate-spin text-slate-300" /></div>
+                ) : dbStudents.length === 0 ? (
+                  <div className="text-center py-3">
+                    <GraduationCap size={28} className="mx-auto mb-2 text-slate-200" />
+                    <p className="text-[11px] text-slate-400">Sin estudiantes aún.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Avg attendance bar */}
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-500">Asistencia promedio</span>
+                        <span className={`font-bold ${avgAttendance >= 90 ? "text-emerald-600" : avgAttendance >= 75 ? "text-amber-600" : "text-red-500"}`}>{avgAttendance}%</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${avgAttendance >= 90 ? "bg-emerald-500" : avgAttendance >= 75 ? "bg-amber-400" : "bg-red-400"}`}
+                          style={{ width: `${avgAttendance}%` }}
+                        />
+                      </div>
+                    </div>
+                    {/* Quick stat pills */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-amber-50 rounded-xl p-2.5 text-center border border-amber-100">
+                        <p className="text-lg font-extrabold text-amber-600">{dbStudents.length}</p>
+                        <p className="text-[10px] text-amber-700 font-medium">Matriculados</p>
+                      </div>
+                      <div className="bg-violet-50 rounded-xl p-2.5 text-center border border-violet-100">
+                        <p className="text-lg font-extrabold text-violet-600">{inPractice}</p>
+                        <p className="text-[10px] text-violet-700 font-medium">En práctica</p>
+                      </div>
+                    </div>
+                    {/* Top attendance student */}
+                    {(() => {
+                      const top = [...dbStudents].sort((a, b) => (b.attendance ?? 0) - (a.attendance ?? 0))[0];
+                      if (!top) return null;
+                      return (
+                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                          <p className="text-[10px] text-emerald-700 font-bold mb-1">Mejor asistencia</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-700 shrink-0">
+                              {top.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate text-slate-700">{top.name}</p>
+                              <p className="text-[10px] text-emerald-600 font-semibold">{top.attendance ?? 0}% asistencia</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── School Sidebar: Quick Actions ── */}
+            {isSchool && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                <h3 className="text-sm font-bold mb-3 text-slate-700">Acciones Rápidas</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => { setTab("Mis Estudiantes"); fetchStudents(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-100 transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
+                      <Users size={14} className="text-white" />
+                    </div>
+                    <span className="text-xs font-semibold text-amber-800">Ver Mis Estudiantes</span>
+                  </button>
+                  <button
+                    onClick={() => { setTab("Mis Estudiantes"); setAddStudentErr(null); setAddStudentOk(false); setAddStudentOpen(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
+                      <Plus size={14} className="text-white" />
+                    </div>
+                    <span className="text-xs font-semibold text-emerald-800">Agregar Alumno</span>
+                  </button>
+                  <button
+                    onClick={() => setTab("Solicitudes")}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-50 hover:bg-violet-100 border border-violet-100 transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-violet-500 flex items-center justify-center shrink-0">
+                      <FileText size={14} className="text-white" />
+                    </div>
+                    <span className="text-xs font-semibold text-violet-800">Ver Solicitudes</span>
+                  </button>
                 </div>
               </div>
             )}
