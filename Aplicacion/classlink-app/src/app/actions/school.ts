@@ -169,3 +169,97 @@ export async function graduateStudent(studentId: string) {
 
   return { success: true };
 }
+
+// ── Internal helper ──────────────────────────────────────
+async function verifySchoolOwnsStudent(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  studentId: string
+): Promise<{ schoolId: string } | { error: string }> {
+  const { data: { user: caller } } = await supabase.auth.getUser();
+  if (!caller) return { error: "No autenticado." };
+
+  const { data: school } = await supabase
+    .from("profiles").select("role, id").eq("id", caller.id).single();
+  if (!school || school.role !== "Colegio") return { error: "Acceso denegado." };
+
+  const { data: student } = await supabase
+    .from("profiles").select("school_id").eq("id", studentId).single();
+  if (!student || student.school_id !== school.id) return { error: "Estudiante no pertenece a este centro." };
+
+  return { schoolId: school.id };
+}
+
+// ── updateStudentProfile ─────────────────────────────────
+// Updates attendance and/or soft_skills for a student owned by the school.
+export async function updateStudentProfile(
+  studentId: string,
+  data: { attendance?: number; soft_skills?: string[] }
+) {
+  if (!studentId) return { error: "ID inválido." };
+
+  const cookieStore = await cookies();
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+  const check = await verifySchoolOwnsStudent(supabase, studentId);
+  if ("error" in check) return check;
+
+  const admin = createAdminClient();
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.attendance !== undefined) {
+    if (data.attendance < 0 || data.attendance > 100) return { error: "Asistencia debe estar entre 0 y 100." };
+    update.attendance = data.attendance;
+  }
+  if (data.soft_skills !== undefined) update.soft_skills = data.soft_skills;
+
+  const { error } = await admin.from("profiles").update(update).eq("id", studentId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+// ── upsertSchoolReport ───────────────────────────────────
+// Creates or updates the latest school report for a student.
+export async function upsertSchoolReport(
+  studentId: string,
+  data: { period: string; summary: string; teacher_comment: string; behavior_note: string }
+) {
+  if (!studentId) return { error: "ID inválido." };
+  if (!data.period.trim()) return { error: "El período es obligatorio." };
+
+  const cookieStore = await cookies();
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+  const check = await verifySchoolOwnsStudent(supabase, studentId);
+  if ("error" in check) return check;
+
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+
+  const { data: existing } = await admin
+    .from("school_reports")
+    .select("id")
+    .eq("student_id", studentId)
+    .eq("period", data.period.trim())
+    .single();
+
+  if (existing?.id) {
+    const { error } = await admin.from("school_reports").update({
+      summary:         data.summary,
+      teacher_comment: data.teacher_comment,
+      behavior_note:   data.behavior_note,
+      updated_at:      now,
+    }).eq("id", existing.id);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await admin.from("school_reports").insert({
+      student_id:      studentId,
+      school_id:       check.schoolId,
+      period:          data.period.trim(),
+      summary:         data.summary,
+      teacher_comment: data.teacher_comment,
+      behavior_note:   data.behavior_note,
+      created_at:      now,
+      updated_at:      now,
+    });
+    if (error) return { error: error.message };
+  }
+
+  return { success: true };
+}

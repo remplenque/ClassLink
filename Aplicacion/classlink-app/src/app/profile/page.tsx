@@ -5,7 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { profileEditSchema } from "@/lib/schemas";
-import { createStudent, graduateStudent } from "@/app/actions/school";
+import { createStudent, graduateStudent, updateStudentProfile, upsertSchoolReport } from "@/app/actions/school";
 import type { Vacancy, JobApplicant } from "@/lib/types";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
@@ -111,6 +111,7 @@ export default function ProfilePage() {
     id: string; name: string; email: string; avatar: string | null;
     specialty: string | null; grade: string | null;
     attendance: number | null; availability: string | null;
+    soft_skills: string[] | null;
   }
   const [dbStudents,       setDbStudents]       = useState<DbStudent[]>([]);
   const [studentsLoading,  setStudentsLoading]  = useState(false);
@@ -129,6 +130,18 @@ export default function ProfilePage() {
 
   // Graduate action
   const [graduatingId,     setGraduatingId]     = useState<string|null>(null);
+
+  // Student management panel (per-student inline editing)
+  const [managingId,       setManagingId]       = useState<string|null>(null);
+  const [mgmtAtt,          setMgmtAtt]          = useState(0);
+  const [mgmtSkillsStr,    setMgmtSkillsStr]    = useState("");
+  const [mgmtPeriod,       setMgmtPeriod]       = useState("");
+  const [mgmtSummary,      setMgmtSummary]      = useState("");
+  const [mgmtTeacher,      setMgmtTeacher]      = useState("");
+  const [mgmtBehavior,     setMgmtBehavior]     = useState("");
+  const [mgmtReportLoaded, setMgmtReportLoaded] = useState(false);
+  const [mgmtSaving,       setMgmtSaving]       = useState<"att"|"skills"|"report"|null>(null);
+  const [mgmtMsg,          setMgmtMsg]          = useState<{type:"ok"|"err"; text:string}|null>(null);
 
   // Recommendation form
   const [recFormTarget,    setRecFormTarget]    = useState<"colegio"|"empresa"|null>(null);
@@ -178,7 +191,7 @@ export default function ProfilePage() {
     setStudentsLoading(true);
     const { data } = await supabase
       .from("profiles")
-      .select("id, name, email, avatar, specialty, grade, attendance, availability")
+      .select("id, name, email, avatar, specialty, grade, attendance, availability, soft_skills")
       .eq("school_id", user.id)
       .eq("role", "Estudiante")
       .order("name");
@@ -538,6 +551,63 @@ export default function ProfilePage() {
     } else {
       fetchStudents();
     }
+  };
+
+  const openManageStudent = async (s: DbStudent) => {
+    setManagingId(s.id);
+    setMgmtAtt(s.attendance ?? 0);
+    setMgmtSkillsStr(Array.isArray(s.soft_skills) ? (s.soft_skills as string[]).join(", ") : "");
+    setMgmtMsg(null);
+    setMgmtReportLoaded(false);
+    setMgmtPeriod(""); setMgmtSummary(""); setMgmtTeacher(""); setMgmtBehavior("");
+    // Fetch latest report for this student
+    const { data } = await supabase
+      .from("school_reports")
+      .select("period, summary, teacher_comment, behavior_note")
+      .eq("student_id", s.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    if (data) {
+      setMgmtPeriod(data.period ?? "");
+      setMgmtSummary(data.summary ?? "");
+      setMgmtTeacher(data.teacher_comment ?? "");
+      setMgmtBehavior(data.behavior_note ?? "");
+    }
+    setMgmtReportLoaded(true);
+  };
+
+  const handleSaveAtt = async () => {
+    if (!managingId) return;
+    setMgmtSaving("att"); setMgmtMsg(null);
+    const res = await updateStudentProfile(managingId, { attendance: mgmtAtt });
+    setMgmtSaving(null);
+    if ("error" in res && res.error) { setMgmtMsg({ type: "err", text: res.error }); return; }
+    setMgmtMsg({ type: "ok", text: "Asistencia guardada." });
+    setDbStudents((prev) => prev.map((s) => s.id === managingId ? { ...s, attendance: mgmtAtt } : s));
+  };
+
+  const handleSaveSkills = async () => {
+    if (!managingId) return;
+    const skills = mgmtSkillsStr.split(",").map((s) => s.trim()).filter(Boolean);
+    setMgmtSaving("skills"); setMgmtMsg(null);
+    const res = await updateStudentProfile(managingId, { soft_skills: skills });
+    setMgmtSaving(null);
+    if ("error" in res && res.error) { setMgmtMsg({ type: "err", text: res.error }); return; }
+    setMgmtMsg({ type: "ok", text: "Habilidades guardadas." });
+    setDbStudents((prev) => prev.map((s) => s.id === managingId ? { ...s, soft_skills: skills } : s));
+  };
+
+  const handleSaveReport = async () => {
+    if (!managingId) return;
+    setMgmtSaving("report"); setMgmtMsg(null);
+    const res = await upsertSchoolReport(managingId, {
+      period: mgmtPeriod, summary: mgmtSummary,
+      teacher_comment: mgmtTeacher, behavior_note: mgmtBehavior,
+    });
+    setMgmtSaving(null);
+    if ("error" in res && res.error) { setMgmtMsg({ type: "err", text: res.error }); return; }
+    setMgmtMsg({ type: "ok", text: "Reporte guardado." });
   };
 
   return (
@@ -1440,43 +1510,182 @@ export default function ProfilePage() {
                       const att = s.attendance ?? 0;
                       const attColor = att >= 90 ? "bg-emerald-500" : att >= 75 ? "bg-amber-400" : "bg-red-400";
                       const availColor = s.availability === "Disponible" ? "bg-emerald-50 text-emerald-700" : s.availability === "En prácticas" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500";
+                      const isManaging = managingId === s.id;
                       return (
-                        <div key={s.id} className="bg-white rounded-2xl p-4 border border-slate-200/60 flex items-center gap-4">
-                          {s.avatar ? (
-                            <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
-                              {s.name.charAt(0)}
+                        <div key={s.id} className={`bg-white rounded-2xl border transition-all ${isManaging ? "border-amber-300 shadow-md" : "border-slate-200/60"}`}>
+                          {/* ── Student summary row ── */}
+                          <div className="p-4 flex items-center gap-4">
+                            {s.avatar ? (
+                              <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0">
+                                {s.name.charAt(0)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <p className="text-sm font-bold truncate">{s.name}</p>
+                                {s.grade && <span className="text-[10px] text-slate-500">{s.grade}</span>}
+                                {s.specialty && (
+                                  <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s.specialty}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                                  <div className={`h-full ${attColor} rounded-full transition-all`} style={{ width: `${att}%` }} />
+                                </div>
+                                <span className="text-[10px] text-slate-500">{att}% asistencia</span>
+                              </div>
+                            </div>
+                            <div className="shrink-0 flex flex-col items-end gap-1.5">
+                              {s.availability && (
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${availColor}`}>{s.availability}</span>
+                              )}
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => isManaging ? setManagingId(null) : openManageStudent(s)}
+                                  className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-colors ${isManaging ? "bg-amber-100 text-amber-700" : "bg-amber-50 text-amber-600 hover:bg-amber-100"}`}
+                                >
+                                  {isManaging ? "Cerrar" : "Gestionar"}
+                                </button>
+                                <button
+                                  onClick={() => handleGraduate(s.id)}
+                                  disabled={graduatingId === s.id}
+                                  className="text-[10px] font-bold px-2.5 py-1 bg-violet-50 text-violet-600 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                  {graduatingId === s.id ? "..." : "Graduar"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ── Inline management panel ── */}
+                          {isManaging && (
+                            <div className="border-t border-amber-100 p-5 space-y-6 bg-amber-50/30">
+
+                              {/* Global feedback message */}
+                              {mgmtMsg && (
+                                <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${mgmtMsg.type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                                  {mgmtMsg.text}
+                                </div>
+                              )}
+
+                              {/* ── Asistencia ── */}
+                              <div className="bg-white rounded-xl p-4 border border-slate-200/60">
+                                <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Asistencia al Taller</h5>
+                                <div className="flex items-center gap-4">
+                                  <input
+                                    type="range" min={0} max={100} value={mgmtAtt}
+                                    onChange={(e) => setMgmtAtt(Number(e.target.value))}
+                                    className="flex-1 accent-amber-500"
+                                  />
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <input
+                                      type="number" min={0} max={100} value={mgmtAtt}
+                                      onChange={(e) => setMgmtAtt(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                      className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold text-center focus:ring-2 focus:ring-amber-200 outline-none"
+                                    />
+                                    <span className="text-sm font-bold text-slate-500">%</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${mgmtAtt >= 90 ? "bg-emerald-500" : mgmtAtt >= 75 ? "bg-amber-400" : "bg-red-400"}`}
+                                    style={{ width: `${mgmtAtt}%` }}
+                                  />
+                                </div>
+                                <button
+                                  onClick={handleSaveAtt}
+                                  disabled={mgmtSaving === "att"}
+                                  className="mt-3 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                                >
+                                  {mgmtSaving === "att" ? <><Loader2 size={12} className="animate-spin" /> Guardando…</> : "Guardar asistencia"}
+                                </button>
+                              </div>
+
+                              {/* ── Habilidades Blandas ── */}
+                              <div className="bg-white rounded-xl p-4 border border-slate-200/60">
+                                <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Habilidades Blandas</h5>
+                                <input
+                                  type="text"
+                                  value={mgmtSkillsStr}
+                                  onChange={(e) => setMgmtSkillsStr(e.target.value)}
+                                  placeholder="Trabajo en equipo, Liderazgo, Comunicación…"
+                                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Separa las habilidades con comas.</p>
+                                {mgmtSkillsStr.trim() && (
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {mgmtSkillsStr.split(",").map((sk) => sk.trim()).filter(Boolean).map((sk) => (
+                                      <span key={sk} className="px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-100 rounded-full text-[11px] font-semibold">{sk}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                <button
+                                  onClick={handleSaveSkills}
+                                  disabled={mgmtSaving === "skills"}
+                                  className="mt-3 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                                >
+                                  {mgmtSaving === "skills" ? <><Loader2 size={12} className="animate-spin" /> Guardando…</> : "Guardar habilidades"}
+                                </button>
+                              </div>
+
+                              {/* ── Reporte del Colegio ── */}
+                              <div className="bg-white rounded-xl p-4 border border-slate-200/60">
+                                <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Reporte del Colegio</h5>
+                                {!mgmtReportLoaded ? (
+                                  <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-slate-300" /></div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <label className="text-[11px] font-bold text-slate-500 mb-1 block">Período *</label>
+                                      <input
+                                        type="text" value={mgmtPeriod}
+                                        onChange={(e) => setMgmtPeriod(e.target.value)}
+                                        placeholder="Ej: I Semestre 2026"
+                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[11px] font-bold text-slate-500 mb-1 block">Resumen</label>
+                                      <textarea
+                                        value={mgmtSummary} rows={2}
+                                        onChange={(e) => setMgmtSummary(e.target.value)}
+                                        placeholder="Rendimiento general del estudiante…"
+                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none resize-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[11px] font-bold text-slate-500 mb-1 block">Comentario del Docente</label>
+                                      <textarea
+                                        value={mgmtTeacher} rows={2}
+                                        onChange={(e) => setMgmtTeacher(e.target.value)}
+                                        placeholder="Observaciones del docente…"
+                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none resize-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[11px] font-bold text-slate-500 mb-1 block">Nota de Conducta</label>
+                                      <textarea
+                                        value={mgmtBehavior} rows={2}
+                                        onChange={(e) => setMgmtBehavior(e.target.value)}
+                                        placeholder="Comportamiento y actitud…"
+                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none resize-none"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={handleSaveReport}
+                                      disabled={mgmtSaving === "report" || !mgmtPeriod.trim()}
+                                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                                    >
+                                      {mgmtSaving === "report" ? <><Loader2 size={12} className="animate-spin" /> Guardando…</> : "Guardar reporte"}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <p className="text-sm font-bold truncate">{s.name}</p>
-                              {s.grade && <span className="text-[10px] text-slate-500">{s.grade}</span>}
-                              {s.specialty && (
-                                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s.specialty}</span>
-                              )}
-                            </div>
-                            {/* Attendance bar */}
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
-                                <div className={`h-full ${attColor} rounded-full transition-all`} style={{ width: `${att}%` }} />
-                              </div>
-                              <span className="text-[10px] text-slate-500">{att}% asistencia</span>
-                            </div>
-                          </div>
-                          <div className="shrink-0 flex flex-col items-end gap-1.5">
-                            {s.availability && (
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${availColor}`}>{s.availability}</span>
-                            )}
-                            <button
-                              onClick={() => handleGraduate(s.id)}
-                              disabled={graduatingId === s.id}
-                              className="text-[10px] font-bold px-2.5 py-1 bg-violet-50 text-violet-600 hover:bg-violet-100 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                              {graduatingId === s.id ? "..." : "Graduar"}
-                            </button>
-                          </div>
                         </div>
                       );
                     })}
