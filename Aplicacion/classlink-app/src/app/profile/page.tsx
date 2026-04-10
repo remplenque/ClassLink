@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { profileEditSchema } from "@/lib/schemas";
 import { createStudent, graduateStudent, updateStudentProfile, upsertSchoolReport } from "@/app/actions/school";
+import { updateApplicationStatus, updateInternshipRequest, createInternshipRequest } from "@/app/actions/company";
 import type { Vacancy, JobApplicant } from "@/lib/types";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
@@ -90,6 +91,8 @@ export default function ProfilePage() {
   const [localVacancies,   setLocalVacancies]   = useState<Vacancy[]>([]);
   const [expandedVacancy,  setExpandedVacancy]  = useState<string | null>(null);
   const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"accepted"|"rejected">>({});
+  const [applicantStudentIds,setApplicantStudentIds]= useState<Record<string, string>>({});
+  const [updatingApp,        setUpdatingApp]        = useState<string|null>(null);
   const [addVacancyOpen,   setAddVacancyOpen]   = useState(false);
   const [newVacTitle,      setNewVacTitle]      = useState("");
   const [newVacDept,       setNewVacDept]       = useState("");
@@ -146,6 +149,32 @@ export default function ProfilePage() {
   // Recommendation form
   const [recFormTarget,    setRecFormTarget]    = useState<"colegio"|"empresa"|null>(null);
   const [recMessage,       setRecMessage]       = useState("");
+
+  // Internship requests (Colegio — Solicitudes tab)
+  interface DbInternshipRequest {
+    id: string; company_id: string; title: string;
+    description: string | null; specialty: string | null;
+    slots: number; urgent: boolean;
+    status: "pendiente" | "aprobado" | "rechazado";
+    created_at: string;
+    profiles?: { name: string; company_name: string | null; avatar: string | null } | null;
+  }
+  const [internshipReqs,   setInternshipReqs]   = useState<DbInternshipRequest[]>([]);
+  const [reqsLoading,      setReqsLoading]      = useState(false);
+  const [updatingReq,      setUpdatingReq]      = useState<string|null>(null);
+
+  // Company — Solicitar Alumnos modal
+  const [solicitarOpen,    setSolicitarOpen]    = useState(false);
+  const [solTitle,         setSolTitle]         = useState("");
+  const [solDesc,          setSolDesc]          = useState("");
+  const [solSpecialty,     setSolSpecialty]     = useState("");
+  const [solSlots,         setSolSlots]         = useState(1);
+  const [solUrgent,        setSolUrgent]        = useState(false);
+  const [solSchoolId,      setSolSchoolId]      = useState("");
+  const [solSchools,       setSolSchools]       = useState<{ id: string; name: string }[]>([]);
+  const [solErr,           setSolErr]           = useState<string|null>(null);
+  const [solOk,            setSolOk]            = useState(false);
+  const [solBusy,          setSolBusy]          = useState(false);
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -244,10 +273,21 @@ export default function ProfilePage() {
       } as Vacancy;
     });
     setLocalVacancies(mapped);
-    // Sync applicant statuses
+    // Sync applicant statuses + student IDs
     const statuses: Record<string, "pending"|"accepted"|"rejected"> = {};
-    mapped.forEach((v) => v.applicants.forEach((a) => { statuses[a.id] = a.status; }));
+    const studentIds: Record<string, string> = {};
+    mapped.forEach((v) => v.applicants.forEach((a) => {
+      statuses[a.id] = a.status;
+    }));
+    // Also build studentId map from raw data
+    (data as unknown[]).forEach((raw: unknown) => {
+      const r = raw as { job_applications?: { id: string; profiles?: { id?: string } | null }[] };
+      (r.job_applications ?? []).forEach((a) => {
+        if (a.profiles?.id) studentIds[a.id] = a.profiles.id;
+      });
+    });
     setApplicantStatuses(statuses);
+    setApplicantStudentIds(studentIds);
   }, [user?.id]);
 
   const fetchSchoolReport = useCallback(async () => {
@@ -275,6 +315,27 @@ export default function ProfilePage() {
     setLocalSkills(names);
   }, [user?.id]);
 
+  const fetchInternshipRequests = useCallback(async () => {
+    if (!user?.id) return;
+    setReqsLoading(true);
+    const { data } = await supabase
+      .from("internship_requests")
+      .select("id, company_id, title, description, specialty, slots, urgent, status, created_at, profiles!internship_requests_company_id_fkey(name, company_name, avatar)")
+      .eq("school_id", user.id)
+      .order("created_at", { ascending: false });
+    setInternshipReqs((data ?? []) as unknown as DbInternshipRequest[]);
+    setReqsLoading(false);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchSchoolsForSolicitar = useCallback(async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name")
+      .eq("role", "Colegio")
+      .order("name");
+    setSolSchools((data ?? []) as { id: string; name: string }[]);
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchPortfolio();
@@ -285,6 +346,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (tab === "Mis Estudiantes" && user?.role === "Colegio") fetchStudents();
   }, [tab, fetchStudents, user?.role]);
+
+  // Fetch internship requests when Solicitudes tab is active
+  useEffect(() => {
+    if (tab === "Solicitudes" && user?.role === "Colegio") fetchInternshipRequests();
+  }, [tab, fetchInternshipRequests, user?.role]);
 
   // Populate local state from profile once loaded
   useEffect(() => {
@@ -608,6 +674,46 @@ export default function ProfilePage() {
     setMgmtSaving(null);
     if ("error" in res && res.error) { setMgmtMsg({ type: "err", text: res.error }); return; }
     setMgmtMsg({ type: "ok", text: "Reporte guardado." });
+  };
+
+  // Handle Accept/Reject application (company) — persists to DB + notifies student
+  const handleUpdateApplication = async (
+    applicationId: string,
+    newStatus: "aceptado" | "rechazado",
+    jobTitle: string
+  ) => {
+    const studentId = applicantStudentIds[applicationId];
+    if (!studentId) return;
+    setUpdatingApp(applicationId);
+    const res = await updateApplicationStatus(applicationId, newStatus, studentId, jobTitle);
+    setUpdatingApp(null);
+    if ("error" in res && res.error) { alert(res.error); return; }
+    setApplicantStatuses((p) => ({ ...p, [applicationId]: newStatus === "aceptado" ? "accepted" : "rejected" }));
+  };
+
+  // Handle approve/reject internship request (school)
+  const handleUpdateReq = async (reqId: string, status: "aprobado" | "rechazado") => {
+    setUpdatingReq(reqId);
+    const res = await updateInternshipRequest(reqId, status);
+    setUpdatingReq(null);
+    if ("error" in res && res.error) { alert(res.error); return; }
+    setInternshipReqs((prev) => prev.map((r) => r.id === reqId ? { ...r, status } : r));
+  };
+
+  // Handle company solicitar alumnos submission
+  const handleSolicitar = async () => {
+    setSolErr(null); setSolBusy(true);
+    const res = await createInternshipRequest(solSchoolId, {
+      title: solTitle, description: solDesc,
+      specialty: solSpecialty, slots: solSlots, urgent: solUrgent,
+    });
+    setSolBusy(false);
+    if ("error" in res && res.error) { setSolErr(res.error); return; }
+    setSolOk(true);
+    setTimeout(() => {
+      setSolicitarOpen(false); setSolOk(false);
+      setSolTitle(""); setSolDesc(""); setSolSpecialty(""); setSolSlots(1); setSolUrgent(false); setSolSchoolId("");
+    }, 1500);
   };
 
   return (
@@ -1527,16 +1633,18 @@ export default function ProfilePage() {
                                       {status === "pending" ? (
                                         <div className="flex gap-2 shrink-0">
                                           <button
-                                            onClick={() => setApplicantStatuses((p) => ({ ...p, [a.id]: "accepted" }))}
-                                            className="flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                            onClick={() => handleUpdateApplication(a.id, "aceptado", v.title)}
+                                            disabled={updatingApp === a.id}
+                                            className="flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                                           >
-                                            <CheckCircle2 size={12} /> Aceptar
+                                            {updatingApp === a.id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={12} />} Aceptar
                                           </button>
                                           <button
-                                            onClick={() => setApplicantStatuses((p) => ({ ...p, [a.id]: "rejected" }))}
-                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                                            onClick={() => handleUpdateApplication(a.id, "rechazado", v.title)}
+                                            disabled={updatingApp === a.id}
+                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                                           >
-                                            <XCircle size={12} /> Rechazar
+                                            {updatingApp === a.id ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={12} />} Rechazar
                                           </button>
                                         </div>
                                       ) : status === "accepted" ? (
@@ -1565,11 +1673,131 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ── Candidatos (Empresa) ── */}
+            {/* ── Candidatos (Empresa) — full applications portal ── */}
             {tab === "Candidatos" && isCompany && (
-              <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                <Users size={44} className="mx-auto mb-3 text-slate-200" />
-                <p className="text-slate-400 font-medium">Candidatos próximamente.</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-slate-800">Portal de Candidatos</h3>
+                  <button
+                    onClick={() => { fetchSchoolsForSolicitar(); setSolErr(null); setSolOk(false); setSolicitarOpen(true); }}
+                    className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                  >
+                    <Plus size={14} /> Solicitar Alumnos
+                  </button>
+                </div>
+
+                {/* Summary metrics */}
+                {(() => {
+                  const allApplicants = localVacancies.flatMap((v) => v.applicants);
+                  const pending  = allApplicants.filter((a) => (applicantStatuses[a.id] ?? a.status) === "pending").length;
+                  const accepted = allApplicants.filter((a) => (applicantStatuses[a.id] ?? a.status) === "accepted").length;
+                  const rejected = allApplicants.filter((a) => (applicantStatuses[a.id] ?? a.status) === "rejected").length;
+                  return (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
+                        <p className="text-2xl font-extrabold text-amber-600">{pending}</p>
+                        <p className="text-xs text-slate-500 mt-1">Pendientes</p>
+                      </div>
+                      <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+                        <p className="text-2xl font-extrabold text-emerald-600">{accepted}</p>
+                        <p className="text-xs text-slate-500 mt-1">Aceptados</p>
+                      </div>
+                      <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
+                        <p className="text-2xl font-extrabold text-red-500">{rejected}</p>
+                        <p className="text-xs text-slate-500 mt-1">Rechazados</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {localVacancies.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/60">
+                    <Users size={44} className="mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">No hay vacantes publicadas aún.</p>
+                  </div>
+                ) : localVacancies.map((v) => {
+                  const pendingApplicants = v.applicants.filter((a) => (applicantStatuses[a.id] ?? a.status) === "pending");
+                  const otherApplicants   = v.applicants.filter((a) => (applicantStatuses[a.id] ?? a.status) !== "pending");
+                  if (v.applicants.length === 0) return null;
+                  return (
+                    <div key={v.id} className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden">
+                      {/* Vacancy header */}
+                      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                          <Users size={16} className="text-violet-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm truncate">{v.title}</p>
+                          <p className="text-[11px] text-slate-400">{v.applicants.length} postulante{v.applicants.length !== 1 ? "s" : ""}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${v.status === "Activa" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                          {v.status}
+                        </span>
+                      </div>
+
+                      {/* Applicant rows */}
+                      <div className="divide-y divide-slate-50">
+                        {/* Pending first */}
+                        {pendingApplicants.map((a) => (
+                          <div key={a.id} className="flex items-center gap-3 px-5 py-3 bg-amber-50/30">
+                            {a.avatar ? (
+                              <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                                {a.name.charAt(0)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold truncate">{a.name}</p>
+                              <p className="text-[11px] text-slate-400">{a.specialty || "Sin especialidad"}</p>
+                            </div>
+                            <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full shrink-0">Pendiente</span>
+                            <div className="flex gap-2 shrink-0">
+                              <button
+                                onClick={() => handleUpdateApplication(a.id, "aceptado", v.title)}
+                                disabled={updatingApp === a.id}
+                                className="flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {updatingApp === a.id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={12} />} Aceptar
+                              </button>
+                              <button
+                                onClick={() => handleUpdateApplication(a.id, "rechazado", v.title)}
+                                disabled={updatingApp === a.id}
+                                className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {updatingApp === a.id ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={12} />} Rechazar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {/* Resolved applicants */}
+                        {otherApplicants.map((a) => {
+                          const status = applicantStatuses[a.id] ?? a.status;
+                          return (
+                            <div key={a.id} className="flex items-center gap-3 px-5 py-3 opacity-70">
+                              {a.avatar ? (
+                                <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                                  {a.name.charAt(0)}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold truncate">{a.name}</p>
+                                <p className="text-[11px] text-slate-400">{a.specialty || "Sin especialidad"}</p>
+                              </div>
+                              {status === "accepted" ? (
+                                <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full shrink-0">Aceptado</span>
+                              ) : (
+                                <span className="text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 px-3 py-1 rounded-full shrink-0">Rechazado</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1830,19 +2058,253 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ── Estadísticas (Colegio) ── */}
+            {/* ── Estadísticas (Colegio) — live stats from dbStudents ── */}
             {tab === "Estadísticas" && isSchool && (
-              <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                <TrendingUp size={44} className="mx-auto mb-3 text-slate-200" />
-                <p className="text-slate-400 font-medium">Estadísticas detalladas próximamente.</p>
+              <div className="space-y-4">
+                <h3 className="font-bold text-base text-slate-800">Estadísticas del Centro</h3>
+
+                {dbStudents.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/60">
+                    <TrendingUp size={44} className="mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">Carga los estudiantes primero.</p>
+                    <button onClick={fetchStudents} className="mt-3 text-xs text-amber-600 hover:underline font-semibold">Cargar datos</button>
+                  </div>
+                ) : (
+                  <>
+                    {/* ── Overview KPIs ── */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { label: "Total alumnos",    value: dbStudents.length,           color: "amber" },
+                        { label: "Asistencia prom.", value: `${avgAttendance}%`,          color: "emerald" },
+                        { label: "En práctica",      value: inPractice,                   color: "violet" },
+                        { label: "Disponibles",      value: dbStudents.filter((s) => s.availability === "Disponible").length, color: "cyan" },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} className={`bg-${color}-50 border border-${color}-100 rounded-2xl p-4 text-center`}>
+                          <p className={`text-2xl font-extrabold text-${color}-600`}>{value}</p>
+                          <p className="text-xs text-slate-500 mt-1">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Attendance distribution ── */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                      <h4 className="font-bold text-sm mb-4 text-slate-700">Distribución de Asistencia</h4>
+                      {(() => {
+                        const buckets = [
+                          { label: "90-100%", count: dbStudents.filter((s) => (s.attendance ?? 0) >= 90).length, color: "#10b981" },
+                          { label: "75-89%",  count: dbStudents.filter((s) => { const a = s.attendance ?? 0; return a >= 75 && a < 90; }).length, color: "#f59e0b" },
+                          { label: "60-74%",  count: dbStudents.filter((s) => { const a = s.attendance ?? 0; return a >= 60 && a < 75; }).length, color: "#f97316" },
+                          { label: "< 60%",   count: dbStudents.filter((s) => (s.attendance ?? 0) < 60).length, color: "#ef4444" },
+                        ];
+                        const maxCount = Math.max(...buckets.map((b) => b.count), 1);
+                        return (
+                          <div className="space-y-3">
+                            {buckets.map((b) => (
+                              <div key={b.label}>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="font-semibold text-slate-600">{b.label}</span>
+                                  <span className="font-bold" style={{ color: b.color }}>{b.count} alumnos</span>
+                                </div>
+                                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${(b.count / maxCount) * 100}%`, background: b.color }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* ── Specialty distribution ── */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                      <h4 className="font-bold text-sm mb-4 text-slate-700">Distribución por Especialidad</h4>
+                      {(() => {
+                        const specMap: Record<string, number> = {};
+                        dbStudents.forEach((s) => {
+                          const sp = s.specialty || "Sin especialidad";
+                          specMap[sp] = (specMap[sp] ?? 0) + 1;
+                        });
+                        const specs = Object.entries(specMap).sort((a, b) => b[1] - a[1]);
+                        const maxCount = Math.max(...specs.map(([, c]) => c), 1);
+                        const specColors = ["#7c3aed", "#0891b2", "#059669", "#d97706", "#dc2626", "#9333ea"];
+                        return specs.length === 0 ? (
+                          <p className="text-sm text-slate-400">Sin datos de especialidad.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {specs.map(([sp, count], i) => (
+                              <div key={sp}>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="font-semibold text-slate-600 truncate max-w-[65%]">{sp}</span>
+                                  <span className="font-bold" style={{ color: specColors[i % specColors.length] }}>{count}</span>
+                                </div>
+                                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${(count / maxCount) * 100}%`, background: specColors[i % specColors.length] }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* ── Availability breakdown ── */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                      <h4 className="font-bold text-sm mb-4 text-slate-700">Disponibilidad de Alumnos</h4>
+                      {(() => {
+                        const avail = [
+                          { label: "Disponible",    count: dbStudents.filter((s) => s.availability === "Disponible").length,    color: "#10b981", bg: "bg-emerald-50" },
+                          { label: "En prácticas",  count: dbStudents.filter((s) => s.availability === "En prácticas").length,  color: "#7c3aed", bg: "bg-violet-50" },
+                          { label: "No disponible", count: dbStudents.filter((s) => s.availability === "No disponible" || !s.availability).length, color: "#94a3b8", bg: "bg-slate-50" },
+                        ];
+                        const total = dbStudents.length;
+                        return (
+                          <div className="grid grid-cols-3 gap-3">
+                            {avail.map(({ label, count, color, bg }) => (
+                              <div key={label} className={`${bg} rounded-xl p-4 text-center border`} style={{ borderColor: `${color}33` }}>
+                                <p className="text-2xl font-extrabold" style={{ color }}>{count}</p>
+                                <p className="text-[10px] text-slate-500 mt-1">{label}</p>
+                                <p className="text-[10px] font-semibold mt-1" style={{ color }}>{total > 0 ? Math.round((count / total) * 100) : 0}%</p>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* ── Top performers ── */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
+                      <h4 className="font-bold text-sm mb-4 text-slate-700">Top Alumnos por Asistencia</h4>
+                      <div className="space-y-2">
+                        {[...dbStudents]
+                          .sort((a, b) => (b.attendance ?? 0) - (a.attendance ?? 0))
+                          .slice(0, 5)
+                          .map((s, i) => (
+                            <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-extrabold shrink-0 ${
+                                i === 0 ? "bg-amber-400 text-white" : i === 1 ? "bg-slate-300 text-slate-700" : i === 2 ? "bg-orange-300 text-white" : "bg-slate-100 text-slate-500"
+                              }`}>
+                                {i + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold truncate">{s.name}</p>
+                                {s.specialty && <p className="text-[10px] text-slate-400">{s.specialty}</p>}
+                              </div>
+                              <span className={`text-xs font-extrabold ${(s.attendance ?? 0) >= 90 ? "text-emerald-600" : (s.attendance ?? 0) >= 75 ? "text-amber-600" : "text-red-500"}`}>
+                                {s.attendance ?? 0}%
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
-            {/* ── Solicitudes (Colegio) ── */}
+            {/* ── Solicitudes (Colegio) — real internship_requests ── */}
             {tab === "Solicitudes" && isSchool && (
-              <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                <Building2 size={44} className="mx-auto mb-3 text-slate-200" />
-                <p className="text-slate-400 font-medium">Cola de solicitudes próximamente.</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-slate-800">Solicitudes de Empresas</h3>
+                  <button onClick={fetchInternshipRequests} className="text-xs text-amber-600 hover:underline font-semibold flex items-center gap-1">
+                    <Loader2 size={10} className={reqsLoading ? "animate-spin" : "hidden"} /> Actualizar
+                  </button>
+                </div>
+
+                {reqsLoading ? (
+                  <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-amber-400" /></div>
+                ) : internshipReqs.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/60">
+                    <Building2 size={44} className="mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">No hay solicitudes de empresas.</p>
+                    <p className="text-xs text-slate-400 mt-1">Cuando una empresa solicite alumnos, aparecerá aquí.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {internshipReqs.map((req) => {
+                      const companyName = (req.profiles as any)?.company_name || (req.profiles as any)?.name || "Empresa";
+                      const statusBadge = req.status === "aprobado"
+                        ? { label: "Aprobada", cls: "bg-emerald-50 text-emerald-700 border-emerald-100" }
+                        : req.status === "rechazado"
+                        ? { label: "Rechazada", cls: "bg-red-50 text-red-600 border-red-100" }
+                        : { label: "Pendiente", cls: "bg-amber-50 text-amber-700 border-amber-100" };
+                      return (
+                        <div key={req.id} className={`bg-white rounded-2xl border overflow-hidden ${req.urgent ? "border-orange-200" : "border-slate-200/60"}`}>
+                          {req.urgent && (
+                            <div className="bg-orange-500 text-white text-[11px] font-bold px-4 py-1.5 flex items-center gap-2">
+                              <span>⚠️</span> Solicitud Urgente
+                            </div>
+                          )}
+                          <div className="p-5">
+                            <div className="flex items-start gap-4">
+                              {/* Company avatar */}
+                              {(req.profiles as any)?.avatar ? (
+                                <img src={(req.profiles as any).avatar} alt={companyName}
+                                  className="w-11 h-11 rounded-xl object-cover shrink-0 border border-slate-100" />
+                              ) : (
+                                <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                                  <Building2 size={20} className="text-violet-500" />
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                  <p className="font-bold text-sm">{req.title}</p>
+                                  <span className={`text-[10px] font-bold border px-2.5 py-0.5 rounded-full ${statusBadge.cls}`}>{statusBadge.label}</span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium mb-2">{companyName}</p>
+
+                                <div className="flex flex-wrap gap-2 text-[11px] mb-2">
+                                  <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
+                                    {req.slots} alumno{req.slots !== 1 ? "s" : ""}
+                                  </span>
+                                  {req.specialty && (
+                                    <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full">{req.specialty}</span>
+                                  )}
+                                  <span className="text-slate-400">
+                                    {new Date(req.created_at).toLocaleDateString("es-CR", { day: "numeric", month: "short", year: "numeric" })}
+                                  </span>
+                                </div>
+
+                                {req.description && (
+                                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{req.description}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Action buttons (only if pendiente) */}
+                            {req.status === "pendiente" && (
+                              <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                                <button
+                                  onClick={() => handleUpdateReq(req.id, "aprobado")}
+                                  disabled={updatingReq === req.id}
+                                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold py-2.5 rounded-xl transition-colors"
+                                >
+                                  {updatingReq === req.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                                  Aprobar Solicitud
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateReq(req.id, "rechazado")}
+                                  disabled={updatingReq === req.id}
+                                  className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-xs font-bold py-2.5 rounded-xl border border-red-100 transition-colors"
+                                >
+                                  {updatingReq === req.id ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                                  Rechazar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2113,6 +2575,71 @@ export default function ProfilePage() {
               className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-xl font-bold text-sm transition-colors"
             >
               Empezar
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Solicitar Alumnos Modal (Empresa) ── */}
+      {isCompany && (
+        <Modal open={solicitarOpen} onClose={() => setSolicitarOpen(false)} title="Solicitar Alumnos a Colegio">
+          <div className="space-y-4">
+            {solErr && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{solErr}</div>
+            )}
+            {solOk && (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">Solicitud enviada correctamente.</div>
+            )}
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">Título de la solicitud *</label>
+              <input value={solTitle} onChange={(e) => setSolTitle(e.target.value)}
+                placeholder="Ej: Pasantes en soldadura TIG"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">Centro educativo *</label>
+              <select value={solSchoolId} onChange={(e) => setSolSchoolId(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none bg-white">
+                <option value="">Seleccionar colegio…</option>
+                {solSchools.map((sc) => (
+                  <option key={sc.id} value={sc.id}>{sc.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Especialidad</label>
+                <input value={solSpecialty} onChange={(e) => setSolSpecialty(e.target.value)}
+                  placeholder="Ej: Mecatronica"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 mb-1 block">Número de alumnos</label>
+                <input type="number" min={1} max={50} value={solSlots} onChange={(e) => setSolSlots(Math.max(1, Number(e.target.value)))}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">Descripción / detalles</label>
+              <textarea value={solDesc} onChange={(e) => setSolDesc(e.target.value)} rows={3}
+                placeholder="Explica el tipo de práctica, horarios, requisitos…"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none resize-none" />
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 cursor-pointer" onClick={() => setSolUrgent(!solUrgent)}>
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${solUrgent ? "bg-orange-500 border-orange-500" : "border-slate-300"}`}>
+                {solUrgent && <CheckCircle2 size={12} className="text-white" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-orange-800">Solicitud urgente</p>
+                <p className="text-[10px] text-orange-600">El colegio recibirá una notificación prioritaria</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSolicitar}
+              disabled={solBusy || !solTitle.trim() || !solSchoolId}
+              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {solBusy ? <><Loader2 size={15} className="animate-spin" /> Enviando…</> : "Enviar Solicitud"}
             </button>
           </div>
         </Modal>
