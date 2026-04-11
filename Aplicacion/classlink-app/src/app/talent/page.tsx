@@ -4,6 +4,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { useRole } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { TP_SPECIALTIES } from "@/lib/specialties";
 import {
   Search, SlidersHorizontal, MapPin, Award, Star,
   CheckCircle, Clock, XCircle, ChevronDown, X,
@@ -219,7 +220,7 @@ function ActivitiesPlayground() {
   );
 }
 
-const SPECIALTIES = ["Todas", "Mecatrónica", "Electricidad", "Soldadura", "Ebanistería", "Refrigeración", "Informática", "Construcción", "Automotriz", "Gastronomía"];
+const SPECIALTIES = ["Todas", ...TP_SPECIALTIES];
 const ROLE_FILTERS = ["Todos", "Estudiante", "Egresado"] as const;
 const AVAILABILITY_FILTERS = ["Todos", "Disponible", "En prácticas", "No disponible"] as const;
 const SORT_OPTIONS = [

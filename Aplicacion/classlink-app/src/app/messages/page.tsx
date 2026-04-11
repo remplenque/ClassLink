@@ -120,10 +120,15 @@ export default function MessagesPage() {
         table: "messages",
         filter: `conversation_id=eq.${activeConvo.id}`,
       }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as MessageRow]);
-        // Mark as read if from other person
-        if ((payload.new as MessageRow).sender_id !== user?.id) {
-          supabase.from("messages").update({ read: true }).eq("id", (payload.new as MessageRow).id);
+        const incoming = payload.new as MessageRow;
+        setMessages((prev) => {
+          // Skip if already in state (our own optimistic insert was already replaced by real id)
+          if (prev.some((m) => m.id === incoming.id)) return prev;
+          return [...prev, incoming];
+        });
+        // Mark as read if from the other person
+        if (incoming.sender_id !== user?.id) {
+          supabase.from("messages").update({ read: true }).eq("id", incoming.id);
         }
       })
       .on("postgres_changes", {
@@ -150,13 +155,35 @@ export default function MessagesPage() {
     setSending(true);
     const text = input.trim();
     setInput("");
-    const { error: err } = await supabase.from("messages").insert({
+
+    // Optimistic insert — message appears instantly in the UI
+    const tempId = `opt-${Date.now()}`;
+    const optimistic: MessageRow = {
+      id: tempId,
       conversation_id: activeConvo.id,
       sender_id: user.id,
       content: text,
       read: false,
-    });
-    if (err) setError("No se pudo enviar el mensaje.");
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    const { data, error: err } = await supabase
+      .from("messages")
+      .insert({ conversation_id: activeConvo.id, sender_id: user.id, content: text, read: false })
+      .select()
+      .single();
+
+    if (err) {
+      setError("No se pudo enviar el mensaje.");
+      // Roll back optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } else if (data) {
+      // Replace the temp message with the persisted row (real id, real timestamp)
+      setMessages((prev) =>
+        prev.map((m) => m.id === tempId ? (data as MessageRow) : m)
+      );
+    }
     setSending(false);
   };
 

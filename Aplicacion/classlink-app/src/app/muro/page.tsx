@@ -30,6 +30,9 @@ function isVideoUrl(url: string) {
   return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+// ── Pagination ────────────────────────────────────────────
+const PAGE_SIZE = 20;
+
 // ── Component ─────────────────────────────────────────────
 
 export default function MuroPage() {
@@ -37,6 +40,9 @@ export default function MuroPage() {
   const { role } = useRole();
 
   const [posts,       setPosts]       = useState<FeedPost[]>([]);
+  const [postTotal,   setPostTotal]   = useState(0);
+  const [postOffset,  setPostOffset]  = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [jobPosts,    setJobPosts]    = useState<FeedPost[]>([]);
   const [tab,         setTab]         = useState<string>("Todos");
   const [tagFilter,   setTagFilter]   = useState("Todos");
@@ -65,23 +71,39 @@ export default function MuroPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Active members sidebar (real data)
-  const [activeMembers, setActiveMembers] = useState<any[]>([]);
+  type ActiveMember = { id: string; name: string; avatar: string | null; specialty: string | null; role: string };
+  const [activeMembers, setActiveMembers] = useState<ActiveMember[]>([]);
 
   // ── Fetch posts ────────────────────────────────────────
 
-  const fetchPosts = useCallback(async () => {
-    setIsFetching(true);
+  type PostRow = {
+    id: string; title: string; description: string | null; content: string | null;
+    image: string | null; tag: string | null; likes_count: number | null;
+    comments_count: number | null; category: string; created_at: string; author_id: string;
+    profiles: { name: string; avatar: string | null; role: string } | null;
+  };
 
-    const { data, error } = await supabase
+  const fetchPosts = useCallback(async (offset = 0, append = false) => {
+    if (offset === 0) setIsFetching(true);
+    else setLoadingMore(true);
+
+    const { data, error, count } = await supabase
       .from("posts")
       .select(`
         id, title, description, content, image, tag,
         likes_count, comments_count, category, created_at, author_id,
         profiles!author_id (name, avatar, role)
-      `)
-      .order("created_at", { ascending: false });
+      `, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
 
-    if (error || !data) { setIsFetching(false); return; }
+    if (error || !data) {
+      setIsFetching(false);
+      setLoadingMore(false);
+      return;
+    }
+
+    setPostTotal(count ?? 0);
 
     let likedIds = new Set<string>();
     if (user?.id) {
@@ -92,7 +114,7 @@ export default function MuroPage() {
       likedIds = new Set((likes ?? []).map((l: { post_id: string }) => l.post_id));
     }
 
-    const mapped: FeedPost[] = (data as any[]).map((p) => ({
+    const mapped: FeedPost[] = (data as unknown as PostRow[]).map((p) => ({
       id:           p.id,
       title:        p.title,
       description:  p.description ?? "",
@@ -110,9 +132,11 @@ export default function MuroPage() {
       createdAt:    (p.created_at ?? "").split("T")[0],
     }));
 
-    setPosts(mapped);
+    setPosts(append ? (prev) => [...prev, ...mapped] : mapped);
+    setPostOffset(offset);
     setIsFetching(false);
-  }, [user?.id]);
+    setLoadingMore(false);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch job postings for "Ofertas de Trabajo" tab ──
 
@@ -124,7 +148,10 @@ export default function MuroPage() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    const mapped: FeedPost[] = (data ?? []).map((j: any) => ({
+    type JobRow = { id: string; title: string; description: string | null; location: string | null;
+      type: string; specialty: string | null; active: boolean; created_at: string;
+      profiles: { name: string; avatar: string | null } | null; };
+    const mapped: FeedPost[] = (data as unknown as JobRow[] ?? []).map((j: JobRow) => ({
       id:           `jp-${j.id}`,
       title:        j.title,
       description:  j.description ?? "",
@@ -297,7 +324,8 @@ export default function MuroPage() {
     setOfferLocation("");
     clearMedia();
     setModalOpen(false);
-    await fetchPosts();
+    // Reset to first page after posting
+    await fetchPosts(0, false);
     setIsPosting(false);
   };
 
@@ -606,6 +634,23 @@ export default function MuroPage() {
                   className="mt-3 text-sm text-cyan-600 font-semibold hover:underline"
                 >
                   Limpiar filtros
+                </button>
+              </div>
+            )}
+
+            {/* ── Load more ── */}
+            {!isFetching && posts.length < postTotal && tab !== "Ofertas de Trabajo" && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => fetchPosts(postOffset + PAGE_SIZE, true)}
+                  disabled={loadingMore}
+                  className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  {loadingMore
+                    ? <Loader2 size={16} className="animate-spin" />
+                    : null
+                  }
+                  Cargar más ({postTotal - posts.length} restantes)
                 </button>
               </div>
             )}

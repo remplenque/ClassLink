@@ -8,6 +8,8 @@ import { profileEditSchema } from "@/lib/schemas";
 import { createStudent, graduateStudent, updateStudentProfile, upsertSchoolReport } from "@/app/actions/school";
 import { updateApplicationStatus, updateInternshipRequest, createInternshipRequest } from "@/app/actions/company";
 import type { Vacancy, JobApplicant } from "@/lib/types";
+import { PortfolioGrid } from "./_components/PortfolioGrid";
+import { BadgesGrid }    from "./_components/BadgesGrid";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
   GraduationCap, Lock, Globe, Building2, Users, TrendingUp,
@@ -205,9 +207,11 @@ export default function ProfilePage() {
       supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
       supabase.from("badges").select("id, name, icon, description"),
     ]);
-    const earned = new Map((userBadges ?? []).map((r: any) => [r.badge_id, r.earned_at]));
+    type BadgeRow  = { id: string; name: string; icon: string; description: string };
+    type EarnedRow = { badge_id: string; earned_at: string | null };
+    const earned = new Map((userBadges ?? []).map((r: EarnedRow) => [r.badge_id, r.earned_at]));
     setBadges(
-      (allBadges ?? []).map((b: any) => ({
+      (allBadges ?? []).map((b: BadgeRow) => ({
         id: b.id, name: b.name, icon: b.icon, description: b.description,
         earned: earned.has(b.id),
         earned_at: earned.get(b.id) ?? null,
@@ -406,7 +410,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const updatePayload: Record<string, any> = {
+      const updatePayload: Record<string, string | number | boolean | null | undefined> = {
         name:       editName.trim(),
         bio:        editBio.trim(),
         location:   editLocation.trim(),
@@ -437,8 +441,8 @@ export default function ProfilePage() {
       setSaveSuccess(true);
       setSaving(false);
       setTimeout(() => { setEditOpen(false); setSaveSuccess(false); }, 1200);
-    } catch (e: any) {
-      setSaveError(e?.message ?? "Error inesperado al guardar");
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Error inesperado al guardar");
       setSaving(false);
     }
   };
@@ -1535,77 +1539,12 @@ export default function ProfilePage() {
 
             {/* ── Portafolio ── */}
             {tab === "Portafolio" && isStudent && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {portfolio.length === 0 ? (
-                  <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                    <p className="text-slate-400">No hay proyectos en el portafolio todavía.</p>
-                  </div>
-                ) : portfolio.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden hover:shadow-md transition-shadow">
-                    {item.image && (
-                      <div className="aspect-[16/9] overflow-hidden">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                        />
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <h3 className="font-bold text-sm">{item.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">{item.description}</p>
-                      {item.link && (
-                        <a
-                          href={item.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`mt-2 flex items-center gap-1 text-xs ${accentText} hover:underline font-medium`}
-                        >
-                          <ExternalLink size={12} /> Ver proyecto
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PortfolioGrid portfolio={portfolio} accentText={accentText} />
             )}
 
             {/* ── Insignias ── */}
             {tab === "Insignias" && isStudent && (
-              <div>
-                {badges.length === 0 ? (
-                  <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/60">
-                    <Award size={40} className="mx-auto mb-3 text-slate-200" />
-                    <p className="text-slate-400 font-medium">No se encontraron insignias.</p>
-                    <p className="text-xs text-slate-300 mt-1">Las insignias se asignan desde la base de datos.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {badges.map((b) => (
-                      <div
-                        key={b.id}
-                        className={`bg-white rounded-2xl p-5 border text-center transition-all ${
-                          b.earned ? "border-cyan-200 shadow-sm" : "border-slate-200/60 opacity-50"
-                        }`}
-                      >
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3 ${b.earned ? "bg-cyan-50" : "bg-slate-100"}`}>
-                          {b.earned
-                            ? <Award size={28} className="text-cyan-600" />
-                            : <Lock size={22} className="text-slate-300" />
-                          }
-                        </div>
-                        <p className="text-sm font-bold leading-tight">{b.name}</p>
-                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{b.description}</p>
-                        {b.earned && b.earned_at && (
-                          <p className="text-[10px] text-cyan-500 mt-2 font-medium">
-                            {new Date(b.earned_at).toLocaleDateString("es-CR")}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <BadgesGrid badges={badges} />
             )}
 
             {/* ── Vacantes (Empresa) ── */}
@@ -2312,7 +2251,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="space-y-3">
                     {internshipReqs.map((req) => {
-                      const companyName = (req.profiles as any)?.company_name || (req.profiles as any)?.name || "Empresa";
+                      const companyName = req.profiles?.company_name || req.profiles?.name || "Empresa";
                       const statusBadge = req.status === "aprobado"
                         ? { label: "Aprobada", cls: "bg-emerald-50 text-emerald-700 border-emerald-100" }
                         : req.status === "rechazado"
@@ -2328,8 +2267,8 @@ export default function ProfilePage() {
                           <div className="p-5">
                             <div className="flex items-start gap-4">
                               {/* Company avatar */}
-                              {(req.profiles as any)?.avatar ? (
-                                <img src={(req.profiles as any).avatar} alt={companyName}
+                              {req.profiles?.avatar ? (
+                                <img src={req.profiles.avatar} alt={companyName}
                                   className="w-11 h-11 rounded-xl object-cover shrink-0 border border-slate-100" />
                               ) : (
                                 <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
@@ -2531,7 +2470,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Tipo</label>
-              <select value={newVacType} onChange={(e) => setNewVacType(e.target.value as any)}
+              <select value={newVacType} onChange={(e) => setNewVacType(e.target.value as Vacancy["type"])}
                 className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-violet-200 outline-none bg-white">
                 <option value="Pasantia">Pasantía</option>
                 <option value="Tiempo completo">Tiempo completo</option>
