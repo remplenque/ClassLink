@@ -120,7 +120,12 @@ export default function MessagesPage() {
         table: "messages",
         filter: `conversation_id=eq.${activeConvo.id}`,
       }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as MessageRow]);
+        const incoming = payload.new as MessageRow;
+        setMessages((prev) => {
+          // Skip if we already have this message (optimistic or prior fetch)
+          if (prev.some((m) => m.id === incoming.id)) return prev;
+          return [...prev, incoming];
+        });
         // Mark as read if from other person
         if ((payload.new as MessageRow).sender_id !== user?.id) {
           supabase.from("messages").update({ read: true }).eq("id", (payload.new as MessageRow).id);
@@ -150,13 +155,33 @@ export default function MessagesPage() {
     setSending(true);
     const text = input.trim();
     setInput("");
-    const { error: err } = await supabase.from("messages").insert({
+
+    // Optimistic update — message appears immediately
+    const optimisticId = `opt-${Date.now()}`;
+    const optimistic: MessageRow = {
+      id:              optimisticId,
       conversation_id: activeConvo.id,
-      sender_id: user.id,
-      content: text,
-      read: false,
-    });
-    if (err) setError("No se pudo enviar el mensaje.");
+      sender_id:       user.id,
+      content:         text,
+      read:            false,
+      created_at:      new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    const { data, error: err } = await supabase
+      .from("messages")
+      .insert({ conversation_id: activeConvo.id, sender_id: user.id, content: text, read: false })
+      .select("id, conversation_id, sender_id, content, read, created_at")
+      .single();
+
+    if (err) {
+      setError("No se pudo enviar el mensaje.");
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setInput(text);
+    } else if (data) {
+      // Replace optimistic entry with the real DB record
+      setMessages((prev) => prev.map((m) => (m.id === optimisticId ? (data as MessageRow) : m)));
+    }
     setSending(false);
   };
 
