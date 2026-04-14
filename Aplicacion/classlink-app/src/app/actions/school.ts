@@ -175,6 +175,89 @@ export async function graduateStudent(studentId: string) {
   return { success: true };
 }
 
+// ── bulkCreateStudents ───────────────────────────────────
+// Creates multiple student Auth users + profiles in one call.
+// Called by the SmartImporter component after CSV validation.
+// Returns a summary of successes and per-row errors.
+export async function bulkCreateStudents(students: Array<{
+  name:      string;
+  email:     string;
+  password:  string;
+  specialty?: string;
+  grade?:    string;
+}>) {
+  if (!Array.isArray(students) || students.length === 0) {
+    return { error: "Lista vacía." };
+  }
+
+  // Verify caller is an authenticated Colegio
+  const cookieStore = await cookies();
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+  const { data: { user: caller }, error: sessionErr } = await supabase.auth.getUser();
+
+  if (sessionErr || !caller) return { error: "No autenticado." };
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role, id")
+    .eq("id", caller.id)
+    .single();
+
+  if (!callerProfile || callerProfile.role !== "Colegio") {
+    return { error: "Solo un Colegio puede importar estudiantes." };
+  }
+
+  const schoolId = callerProfile.id;
+  const admin    = createAdminClient();
+
+  let created = 0;
+  const errors: Array<{ index: number; email: string; message: string }> = [];
+
+  for (let i = 0; i < students.length; i++) {
+    const s = students[i];
+
+    // Create Auth user
+    const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
+      email:         s.email.trim(),
+      password:      s.password,
+      email_confirm: true,
+      app_metadata:  { role: "Estudiante", must_change_password: true },
+      user_metadata: { name: s.name.trim() },
+    });
+
+    if (createErr || !newUser.user) {
+      errors.push({ index: i, email: s.email, message: createErr?.message ?? "Error al crear usuario." });
+      continue;
+    }
+
+    // Upsert profile (trigger may pre-insert a row)
+    const { error: profileErr } = await admin.from("profiles").upsert(
+      {
+        id:        newUser.user.id,
+        name:      s.name.trim(),
+        email:     s.email.trim(),
+        role:      "Estudiante",
+        school_id: schoolId,
+        specialty: s.specialty ?? null,
+        grade:     s.grade     ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+
+    if (profileErr) {
+      // Roll back auth user to keep DB consistent
+      await admin.auth.admin.deleteUser(newUser.user.id);
+      errors.push({ index: i, email: s.email, message: profileErr.message });
+      continue;
+    }
+
+    created++;
+  }
+
+  return { created, errors };
+}
+
 // ── Internal helper ──────────────────────────────────────
 async function verifySchoolOwnsStudent(
   supabase: ReturnType<typeof createServerSupabaseClient>,

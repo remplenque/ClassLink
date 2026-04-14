@@ -4,11 +4,12 @@ import PageLayout from "@/components/layout/PageLayout";
 import { useRole } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import SkillAssessmentActivity from "@/components/talent/SkillAssessmentActivity";
 import {
   Search, SlidersHorizontal, MapPin, Award, Star,
   CheckCircle, Clock, XCircle, ChevronDown, X,
   Loader2, MessageCircle, Zap, Trophy, Flame, Lock,
-  BookOpen, Code, Wrench, Lightbulb, Target, Shield,
+  BookOpen, Code, Wrench, Lightbulb, Target, Shield, Brain,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ function ActivitiesPlayground() {
   const [loading, setLoading]   = useState(true);
   const [catFilter, setCatFilter] = useState<string>("all");
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [showActivity, setShowActivity] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -148,6 +150,37 @@ function ActivitiesPlayground() {
 
       {/* Activities grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* ── Skill Assessment special card ───────────────── */}
+        {(catFilter === "all" || catFilter === "soft") && (
+          <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl border border-violet-200/60 overflow-hidden hover:shadow-md transition-all animate-fade-in-up">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-violet-100">
+                  <Brain size={22} className="text-violet-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-sm leading-tight">Evaluación de Competencias</h3>
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">+80 XP</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    5 escenarios laborales reales. Evalúa comunicación, liderazgo, empatía y más.
+                  </p>
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowActivity(true)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all bg-violet-600 hover:bg-violet-700 text-white"
+                    >
+                      Iniciar evaluación
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {displayed.map((act, i) => {
           const isDone = completedIds.has(act.id);
           const Icon   = act.icon;
@@ -215,6 +248,15 @@ function ActivitiesPlayground() {
           </div>
         </div>
       </div>
+
+      {/* ── Skill Assessment overlay ──────────────────────── */}
+      {showActivity && user?.id && (
+        <SkillAssessmentActivity
+          userId={user.id}
+          onClose={() => setShowActivity(false)}
+          onXPEarned={(xp) => setProfile((p) => p ? { ...p, xp: p.xp + xp } : p)}
+        />
+      )}
     </div>
   );
 }
