@@ -10,17 +10,19 @@ import { supabase } from "@/lib/supabase";
 import { useAuth }  from "@/lib/auth-context";
 import { useRole }  from "@/lib/role-context";
 import { useSound } from "@/lib/hooks/useSound";
+import { computeMatchScore, getMatchLabel, getMatchColor } from "@/lib/utils/matching";
 import type { FeedPost, PostComment } from "@/lib/types";
 import {
   Heart, MessageCircle, Plus, Search, TrendingUp, Users, Flame, Loader2,
   ImagePlus, X, Video, FileImage, Clock, MapPin, Briefcase, Send, Volume2, VolumeX,
+  Bookmark, BookmarkCheck, CheckCheck, Sparkles,
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
 
 // ── Constants ─────────────────────────────────────────────
 
-const TABS = ["Todos", "Portafolios", "Eventos", "Ofertas de Trabajo"] as const;
+const TABS = ["Todos", "Portafolios", "Eventos", "Ofertas de Trabajo", "Guardados"] as const;
 
 const TAG_FILTERS = [
   "Todos", "Mecatrónica", "Electricidad", "Soldadura TIG", "Ebanistería",
@@ -41,6 +43,13 @@ export default function MuroPage() {
   const { user } = useAuth();
   const { role } = useRole();
   const { muted, toggleMute, playLike, playComment, playPost } = useSound();
+
+  // ── Save / apply / match state ────────────────────────
+  const [savedPostIds,    setSavedPostIds]    = useState<Set<string>>(new Set());
+  const [appliedJobIds,   setAppliedJobIds]   = useState<Set<string>>(new Set());
+  const [applyingJobId,   setApplyingJobId]   = useState<string | null>(null);
+  const [mySkills,        setMySkills]        = useState<string[]>([]);
+  const [mySpecialty,     setMySpecialty]     = useState("");
 
   // ── Comment system state ───────────────────────────────
   const [expandedPostId,    setExpandedPostId]    = useState<string | null>(null);
@@ -171,11 +180,77 @@ export default function MuroPage() {
     setActiveMembers(data ?? []);
   }, []);
 
+  // ── Fetch saved posts ──────────────────────────────────
+  const fetchSavedPosts = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("saved_posts")
+      .select("post_id")
+      .eq("user_id", user.id);
+    setSavedPostIds(new Set((data ?? []).map((r: any) => r.post_id)));
+  }, [user?.id]);
+
+  // ── Fetch applied jobs ────────────────────────────────
+  const fetchAppliedJobs = useCallback(async () => {
+    if (!user?.id || (role !== "Estudiante" && role !== "Egresado")) return;
+    const { data } = await supabase
+      .from("job_applications")
+      .select("job_id")
+      .eq("applicant_id", user.id);
+    setAppliedJobIds(new Set((data ?? []).map((r: any) => r.job_id)));
+  }, [user?.id, role]);
+
+  // ── Fetch student profile for smart matching ──────────
+  const fetchMyProfile = useCallback(async () => {
+    if (!user?.id || (role !== "Estudiante" && role !== "Egresado")) return;
+    const [{ data: prof }, { data: skillsData }] = await Promise.all([
+      supabase.from("profiles").select("specialty").eq("id", user.id).single(),
+      supabase.from("user_skills")
+        .select("skills(name)")
+        .eq("user_id", user.id),
+    ]);
+    if (prof) setMySpecialty((prof as any).specialty ?? "");
+    if (skillsData) setMySkills((skillsData as any[]).map((s) => s.skills?.name ?? ""));
+  }, [user?.id, role]);
+
   useEffect(() => {
     fetchPosts();
     fetchJobPostings();
     fetchMembers();
-  }, [fetchPosts, fetchJobPostings, fetchMembers]);
+    fetchSavedPosts();
+    fetchAppliedJobs();
+    fetchMyProfile();
+  }, [fetchPosts, fetchJobPostings, fetchMembers, fetchSavedPosts, fetchAppliedJobs, fetchMyProfile]);
+
+  // ── Toggle save post ───────────────────────────────────
+  const toggleSave = async (postId: string) => {
+    if (!user) return;
+    const isSaved = savedPostIds.has(postId);
+    setSavedPostIds((prev) => {
+      const s = new Set(prev);
+      isSaved ? s.delete(postId) : s.add(postId);
+      return s;
+    });
+    if (isSaved) {
+      await supabase.from("saved_posts").delete().eq("user_id", user.id).eq("post_id", postId);
+    } else {
+      await supabase.from("saved_posts").insert({ user_id: user.id, post_id: postId });
+    }
+  };
+
+  // ── Apply to a job posting from the wall ──────────────
+  const applyToJobFromMuro = async (jobPostingId: string) => {
+    if (!user || applyingJobId || appliedJobIds.has(jobPostingId)) return;
+    setApplyingJobId(jobPostingId);
+    setAppliedJobIds((prev) => new Set(prev).add(jobPostingId));
+    const { error } = await supabase
+      .from("job_applications")
+      .insert({ job_id: jobPostingId, applicant_id: user.id, status: "pending", priority: 0 });
+    if (error) {
+      setAppliedJobIds((prev) => { const s = new Set(prev); s.delete(jobPostingId); return s; });
+    }
+    setApplyingJobId(null);
+  };
 
   // ── Media selection ────────────────────────────────────
 
@@ -420,13 +495,20 @@ export default function MuroPage() {
   // Merge job_postings into the "Ofertas de Trabajo" source pool
   const allPosts = tab === "Ofertas de Trabajo"
     ? [...posts.filter((p) => p.category === "oferta"), ...jobPosts]
+    : tab === "Guardados"
+    ? posts.filter((p) => savedPostIds.has(p.id))
     : posts;
 
   const offerCount = posts.filter((p) => p.category === "oferta").length + jobPosts.length;
+  const savedCount = savedPostIds.size;
+
+  const canSave  = role === "Estudiante" || role === "Egresado";
+  const canApply = role === "Estudiante" || role === "Egresado";
 
   const filtered = allPosts.filter((p) => {
     const matchTab =
       tab === "Todos" ||
+      tab === "Guardados" ||
       (tab === "Portafolios"       && p.category === "portafolio") ||
       (tab === "Eventos"           && (p.category === "evento" || p.category === "publicacion")) ||
       (tab === "Ofertas de Trabajo" && p.category === "oferta");
@@ -495,7 +577,7 @@ export default function MuroPage() {
           </div>
 
           <div className="flex items-center gap-4 border-b border-slate-200 overflow-x-auto no-scrollbar">
-            {TABS.map((t) => (
+            {TABS.filter((t) => t !== "Guardados" || canSave).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -509,6 +591,11 @@ export default function MuroPage() {
                 {t === "Ofertas de Trabajo" && offerCount > 0 && (
                   <span className="bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {offerCount}
+                  </span>
+                )}
+                {t === "Guardados" && savedCount > 0 && (
+                  <span className="bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {savedCount}
                   </span>
                 )}
               </button>
@@ -581,6 +668,21 @@ export default function MuroPage() {
                         </span>
                       </div>
 
+                      {/* Smart match score — visible to students/egresados */}
+                      {canApply && (mySkills.length > 0 || mySpecialty) && (() => {
+                        const score = computeMatchScore(mySkills, mySpecialty, {
+                          id: post.id, title: post.title,
+                          description: post.description, specialty: post.offerSpecialty ?? "",
+                        });
+                        const color = getMatchColor(score);
+                        return (
+                          <div className={`flex items-center gap-1.5 mb-2 text-${color}-600 bg-${color}-50 border border-${color}-100 rounded-lg px-2.5 py-1 w-fit`}>
+                            <Sparkles size={12} />
+                            <span className="text-[11px] font-bold">{score}% compatibilidad · {getMatchLabel(score)}</span>
+                          </div>
+                        );
+                      })()}
+
                       {/* Job title & description */}
                       <h3 className="font-bold text-lg mb-1">{post.title}</h3>
                       <p className="text-sm text-slate-500 line-clamp-2 mb-3">
@@ -625,9 +727,33 @@ export default function MuroPage() {
                             <MessageCircle size={18} /> {post.comments}
                           </span>
                         </div>
-                        <button className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
-                          Postular via Colegio
-                        </button>
+                        {/* Apply button — only for jp- cards (real job_postings) and student roles */}
+                        {post.id.startsWith("jp-") && canApply ? (() => {
+                          const jobId    = post.author; // actual job_postings UUID
+                          const applied  = appliedJobIds.has(jobId);
+                          const applying = applyingJobId === jobId;
+                          return (
+                            <button
+                              onClick={() => applyToJobFromMuro(jobId)}
+                              disabled={applied || applying || !user}
+                              className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all active:scale-95 disabled:cursor-not-allowed ${
+                                applied
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-violet-600 hover:bg-violet-700 text-white"
+                              }`}
+                            >
+                              {applying ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : applied ? (
+                                <><CheckCheck size={13} /> Postulado</>
+                              ) : (
+                                <>Postular</>
+                              )}
+                            </button>
+                          );
+                        })() : (
+                          <span className="text-[10px] text-slate-400 italic">Aplica en /empleos</span>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -728,7 +854,21 @@ export default function MuroPage() {
                         />
                         {post.comments}
                       </button>
-                      {!post.image && (
+                      {canSave && (
+                        <button
+                          onClick={() => toggleSave(post.id)}
+                          disabled={!user}
+                          className={`flex items-center gap-1 text-sm font-medium transition-all active:scale-90 disabled:opacity-40 ml-auto ${
+                            savedPostIds.has(post.id) ? "text-amber-500" : "text-slate-400 hover:text-amber-400"
+                          }`}
+                          title={savedPostIds.has(post.id) ? "Quitar de guardados" : "Guardar publicación"}
+                        >
+                          {savedPostIds.has(post.id)
+                            ? <BookmarkCheck size={18} className="fill-amber-100" />
+                            : <Bookmark size={18} />}
+                        </button>
+                      )}
+                      {!post.image && !canSave && (
                         <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
                           {post.tag}
                         </span>

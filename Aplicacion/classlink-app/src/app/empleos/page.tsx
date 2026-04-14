@@ -9,8 +9,9 @@ import { jobPostingSchema } from "@/lib/schemas";
 import { updateApplicationStatusSA } from "@/app/actions/company";
 import {
   Briefcase, MapPin, Plus, Loader2, ChevronDown, X, Send, CheckCircle,
-  Users, CheckCircle2, XCircle, ArrowUp, ArrowDown, Trophy,
+  Users, CheckCircle2, XCircle, ArrowUp, ArrowDown, Trophy, Sparkles,
 } from "lucide-react";
+import { computeMatchScore, getMatchLabel, getMatchColor } from "@/lib/utils/matching";
 
 interface JobPosting {
   id: string; title: string; description: string; location: string;
@@ -61,6 +62,10 @@ export default function EmpleosPage() {
   const [loadingApplicants, setLoadingApplicants] = useState<string | null>(null);
   const [updatingApp, setUpdatingApp] = useState<string | null>(null);
 
+  // Smart matching — student profile data
+  const [mySkills,    setMySkills]    = useState<string[]>([]);
+  const [mySpecialty, setMySpecialty] = useState("");
+
   const fetchJobs = useCallback(async () => {
     setLoading(true); setError(null);
     let query;
@@ -95,7 +100,17 @@ export default function EmpleosPage() {
     setAppliedIds(new Set((data ?? []).map((a: any) => a.job_id)));
   }, [user?.id, isCompany]);
 
-  useEffect(() => { fetchJobs(); fetchMyApplications(); }, [fetchJobs, fetchMyApplications]);
+  const fetchMyProfile = useCallback(async () => {
+    if (!user?.id || isCompany) return;
+    const [{ data: prof }, { data: skillsData }] = await Promise.all([
+      supabase.from("profiles").select("specialty").eq("id", user.id).single(),
+      supabase.from("user_skills").select("skills(name)").eq("user_id", user.id),
+    ]);
+    if (prof) setMySpecialty((prof as any).specialty ?? "");
+    if (skillsData) setMySkills((skillsData as any[]).map((s) => s.skills?.name ?? ""));
+  }, [user?.id, isCompany]);
+
+  useEffect(() => { fetchJobs(); fetchMyApplications(); fetchMyProfile(); }, [fetchJobs, fetchMyApplications, fetchMyProfile]);
 
   const openCreate = () => {
     setEditJob(null);
@@ -292,6 +307,20 @@ export default function EmpleosPage() {
                           </span>
                         )}
                         {!job.active && <span className="bg-red-50 text-red-500 px-2 py-0.5 rounded-md font-semibold">Cerrada</span>}
+                        {/* Smart match score — student/egresado viewers only */}
+                        {!isCompany && (mySkills.length > 0 || mySpecialty) && (() => {
+                          const score = computeMatchScore(mySkills, mySpecialty, {
+                            id: job.id, title: job.title,
+                            description: job.description, specialty: job.specialty ?? "",
+                            requirements: "",
+                          });
+                          const color = getMatchColor(score);
+                          return (
+                            <span className={`flex items-center gap-1 text-${color}-600 bg-${color}-50 border border-${color}-100 px-2 py-0.5 rounded-md font-bold`}>
+                              <Sparkles size={10} /> {score}% · {getMatchLabel(score)}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
