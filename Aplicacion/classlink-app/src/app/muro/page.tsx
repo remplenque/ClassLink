@@ -9,10 +9,11 @@ import Modal      from "@/components/ui/Modal";
 import { supabase } from "@/lib/supabase";
 import { useAuth }  from "@/lib/auth-context";
 import { useRole }  from "@/lib/role-context";
-import type { FeedPost } from "@/lib/types";
+import { useSound } from "@/lib/hooks/useSound";
+import type { FeedPost, PostComment } from "@/lib/types";
 import {
   Heart, MessageCircle, Plus, Search, TrendingUp, Users, Flame, Loader2,
-  ImagePlus, X, Video, FileImage, Clock, MapPin, Briefcase,
+  ImagePlus, X, Video, FileImage, Clock, MapPin, Briefcase, Send, Volume2, VolumeX,
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
@@ -39,6 +40,14 @@ function isVideoUrl(url: string) {
 export default function MuroPage() {
   const { user } = useAuth();
   const { role } = useRole();
+  const { muted, toggleMute, playLike, playComment, playPost } = useSound();
+
+  // ── Comment system state ───────────────────────────────
+  const [expandedPostId,    setExpandedPostId]    = useState<string | null>(null);
+  const [commentsByPost,    setCommentsByPost]    = useState<Record<string, PostComment[]>>({});
+  const [loadingComments,   setLoadingComments]   = useState<Set<string>>(new Set());
+  const [commentDraft,      setCommentDraft]      = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   const [posts,       setPosts]       = useState<FeedPost[]>([]);
   const [jobPosts,    setJobPosts]    = useState<FeedPost[]>([]);
@@ -223,6 +232,7 @@ export default function MuroPage() {
           : p
       )
     );
+    if (!post.liked) playLike();
 
     if (post.liked) {
       await supabase.from("post_likes").delete()
@@ -300,6 +310,7 @@ export default function MuroPage() {
     setOfferSalary("");
     setOfferLocation("");
     clearMedia();
+    playPost();
     setModalOpen(false);
     await fetchPosts();
     setIsPosting(false);
@@ -309,6 +320,99 @@ export default function MuroPage() {
     setModalOpen(false);
     setPostError(null);
     clearMedia();
+  };
+
+  // ── Comment system ─────────────────────────────────────
+
+  const fetchComments = useCallback(async (postId: string) => {
+    setLoadingComments((prev) => new Set(prev).add(postId));
+    const { data } = await supabase
+      .from("post_comments")
+      .select(`id, post_id, content, created_at, author_id, profiles!author_id(name, avatar, role)`)
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+
+    const mapped: PostComment[] = (data ?? []).map((c: any) => ({
+      id:           c.id,
+      postId:       c.post_id,
+      authorId:     c.author_id,
+      authorName:   c.profiles?.name   ?? "Usuario",
+      authorAvatar: c.profiles?.avatar ?? "",
+      authorRole:   c.profiles?.role   ?? "Estudiante",
+      content:      c.content,
+      createdAt:    (c.created_at ?? "").split("T")[0],
+    }));
+
+    setCommentsByPost((prev) => ({ ...prev, [postId]: mapped }));
+    setLoadingComments((prev) => { const s = new Set(prev); s.delete(postId); return s; });
+  }, []);
+
+  const toggleComments = (postId: string) => {
+    if (expandedPostId === postId) {
+      setExpandedPostId(null);
+      setCommentDraft("");
+    } else {
+      setExpandedPostId(postId);
+      setCommentDraft("");
+      if (!commentsByPost[postId]) fetchComments(postId);
+    }
+  };
+
+  const submitComment = async (postId: string) => {
+    if (!user || !commentDraft.trim() || submittingComment) return;
+    setSubmittingComment(true);
+
+    const draft        = commentDraft.trim();
+    const optimisticId = `opt-${Date.now()}`;
+    const optimistic: PostComment = {
+      id:           optimisticId,
+      postId,
+      authorId:     user.id,
+      authorName:   user.name,
+      authorAvatar: user.avatar ?? "",
+      authorRole:   user.role,
+      content:      draft,
+      createdAt:    new Date().toISOString().split("T")[0],
+    };
+
+    // Optimistic update
+    setCommentsByPost((prev) => ({ ...prev, [postId]: [...(prev[postId] ?? []), optimistic] }));
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
+    setCommentDraft("");
+    playComment();
+
+    const { data, error } = await supabase
+      .from("post_comments")
+      .insert({ post_id: postId, author_id: user.id, content: draft })
+      .select(`id, post_id, content, created_at, author_id, profiles!author_id(name, avatar, role)`)
+      .single();
+
+    if (error) {
+      // Rollback
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] ?? []).filter((c) => c.id !== optimisticId),
+      }));
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments - 1 } : p));
+      setCommentDraft(draft);
+    } else if (data) {
+      const real: PostComment = {
+        id:           data.id,
+        postId:       data.post_id,
+        authorId:     data.author_id,
+        authorName:   (data as any).profiles?.name   ?? user.name,
+        authorAvatar: (data as any).profiles?.avatar ?? user.avatar ?? "",
+        authorRole:   (data as any).profiles?.role   ?? user.role,
+        content:      data.content,
+        createdAt:    (data.created_at ?? "").split("T")[0],
+      };
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] ?? []).map((c) => (c.id === optimisticId ? real : c)),
+      }));
+    }
+
+    setSubmittingComment(false);
   };
 
   // ── Filtering ──────────────────────────────────────────
@@ -359,13 +463,22 @@ export default function MuroPage() {
               Comparte proyectos, logros y conecta con la comunidad.
             </p>
           </div>
-          <button
-            onClick={() => { if (role === "Empresa") setNewCategory("oferta"); setModalOpen(true); }}
-            disabled={!user}
-            className="flex items-center gap-1.5 bg-cyan-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-cyan-700 active:bg-cyan-800 transition-colors shadow-sm btn-press disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Plus size={16} /> Publicar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+              title={muted ? "Activar sonidos" : "Silenciar sonidos"}
+            >
+              {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+            <button
+              onClick={() => { if (role === "Empresa") setNewCategory("oferta"); setModalOpen(true); }}
+              disabled={!user}
+              className="flex items-center gap-1.5 bg-cyan-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-cyan-700 active:bg-cyan-800 transition-colors shadow-sm btn-press disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Plus size={16} /> Publicar
+            </button>
+          </div>
         </div>
 
         {/* Search + Tabs + Tag chips */}
@@ -409,11 +522,28 @@ export default function MuroPage() {
           {/* Feed Column */}
           <div className="lg:col-span-2 space-y-4">
 
-            {isFetching && (
-              <div className="flex justify-center py-20">
-                <Loader2 size={32} className="animate-spin text-cyan-400" />
+            {isFetching && Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden animate-pulse">
+                <div className="aspect-[2.2/1] bg-slate-100" />
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-slate-200" />
+                    <div className="space-y-1.5">
+                      <div className="h-3.5 w-28 bg-slate-200 rounded" />
+                      <div className="h-2.5 w-16 bg-slate-100 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-3/4 bg-slate-200 rounded" />
+                  <div className="h-3.5 w-full bg-slate-100 rounded" />
+                  <div className="h-3.5 w-2/3 bg-slate-100 rounded" />
+                  <div className="h-px bg-slate-100 mt-1" />
+                  <div className="flex gap-5 pt-1">
+                    <div className="h-5 w-10 bg-slate-100 rounded" />
+                    <div className="h-5 w-10 bg-slate-100 rounded" />
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
 
             {!isFetching && filtered.map((post, i) => {
               // ── Job Offer Card ──
@@ -585,9 +715,19 @@ export default function MuroPage() {
                         />
                         {post.likes}
                       </button>
-                      <span className="flex items-center gap-1.5 text-sm text-slate-400 font-medium">
-                        <MessageCircle size={18} /> {post.comments}
-                      </span>
+                      <button
+                        onClick={() => toggleComments(post.id)}
+                        disabled={!user}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition-all active:scale-90 disabled:opacity-40 ${
+                          expandedPostId === post.id ? "text-cyan-600" : "text-slate-400 hover:text-cyan-500"
+                        }`}
+                      >
+                        <MessageCircle
+                          size={18}
+                          className={`transition-all ${expandedPostId === post.id ? "fill-cyan-100" : ""}`}
+                        />
+                        {post.comments}
+                      </button>
                       {!post.image && (
                         <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">
                           {post.tag}
@@ -595,6 +735,98 @@ export default function MuroPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* ── Inline Comment Panel ── */}
+                  {expandedPostId === post.id && (
+                    <div className="border-t border-slate-100 bg-slate-50/50 px-5 pb-4 pt-3 space-y-3 animate-fade-in-up">
+
+                      {/* Comment list */}
+                      {loadingComments.has(post.id) ? (
+                        <div className="space-y-2.5 animate-pulse">
+                          {[0, 1].map((j) => (
+                            <div key={j} className="flex gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-slate-200 flex-shrink-0" />
+                              <div className="flex-1 space-y-1.5">
+                                <div className="h-3 w-24 bg-slate-200 rounded" />
+                                <div className="h-3 w-full bg-slate-100 rounded" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                          {(commentsByPost[post.id] ?? []).length === 0 && (
+                            <p className="text-xs text-slate-400 text-center py-3">
+                              Sin comentarios aún. ¡Sé el primero!
+                            </p>
+                          )}
+                          {(commentsByPost[post.id] ?? []).map((c) => (
+                            <div key={c.id} className="flex gap-2 items-start">
+                              {c.authorAvatar ? (
+                                <img
+                                  src={c.authorAvatar}
+                                  alt={c.authorName}
+                                  className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-500 flex-shrink-0">
+                                  {c.authorName.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="bg-white rounded-xl px-3 py-2 flex-1 border border-slate-100 shadow-sm">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs font-semibold text-slate-700">{c.authorName}</span>
+                                  <span className="text-[10px] text-slate-400">{c.createdAt}</span>
+                                </div>
+                                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{c.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Comment input — only for authenticated users */}
+                      {user && (
+                        <div className="flex gap-2 items-center pt-1">
+                          {user.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-cyan-100 flex items-center justify-center text-[11px] font-bold text-cyan-600 flex-shrink-0">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={commentDraft}
+                            onChange={(e) => setCommentDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                submitComment(post.id);
+                              }
+                            }}
+                            placeholder="Escribe un comentario..."
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none transition-shadow"
+                          />
+                          <button
+                            onClick={() => submitComment(post.id)}
+                            disabled={!commentDraft.trim() || submittingComment}
+                            className="w-8 h-8 bg-cyan-600 rounded-xl flex items-center justify-center hover:bg-cyan-700 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                          >
+                            {submittingComment ? (
+                              <Loader2 size={13} className="animate-spin text-white" />
+                            ) : (
+                              <Send size={13} className="text-white" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </article>
               );
             })}
