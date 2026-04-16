@@ -201,6 +201,18 @@ export interface FeedPost {
   offerLocation?:  string;
 }
 
+/** A comment on a wall post, joined with the author's profile */
+export interface PostComment {
+  id:           string;
+  postId:       string;
+  authorId:     string;
+  authorName:   string;
+  authorAvatar: string;
+  authorRole:   Role | string;
+  content:      string;
+  createdAt:    string;
+}
+
 /* ── 5. Talent Directory ────────────────────────────────── */
 
 /**

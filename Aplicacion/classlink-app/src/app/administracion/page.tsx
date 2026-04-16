@@ -17,9 +17,10 @@ import {
   upsertSchoolReport,
 } from "@/app/actions/school";
 import { updateInternshipRequest } from "@/app/actions/company";
+import SmartImporter from "@/components/admin/SmartImporter";
 import {
   GraduationCap, Plus, Search, TrendingUp, Users, FileText,
-  Loader2, CheckCircle2, XCircle, ChevronRight,
+  Loader2, CheckCircle2, XCircle, ChevronRight, Upload,
 } from "lucide-react";
 import { TP_SPECIALTIES } from "@/lib/specialties";
 
@@ -56,6 +57,9 @@ export default function AdministracionPage() {
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [schoolSearch,    setSchoolSearch]    = useState("");
   const [schoolSpecialty, setSchoolSpecialty] = useState("Todos");
+
+  // ── Smart CSV Importer ────────────────────────────────
+  const [showImporter,    setShowImporter]    = useState(false);
 
   // ── Add student modal ─────────────────────────────────
   const [addStudentOpen,  setAddStudentOpen]  = useState(false);
@@ -295,14 +299,22 @@ export default function AdministracionPage() {
           <div className="space-y-4 animate-fade-in-up">
 
             {/* Header row */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="font-bold text-base text-slate-800">Mis Estudiantes</h2>
-              <button
-                onClick={() => { setAddStudentErr(null); setAddStudentOk(false); setAddStudentOpen(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
-              >
-                <Plus size={14} /> Agregar Alumno
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowImporter(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                >
+                  <Upload size={14} /> Importar CSV
+                </button>
+                <button
+                  onClick={() => { setAddStudentErr(null); setAddStudentOk(false); setAddStudentOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                >
+                  <Plus size={14} /> Agregar Alumno
+                </button>
+              </div>
             </div>
 
             {/* Summary stats */}
@@ -822,6 +834,18 @@ export default function AdministracionPage() {
           </div>
         )}
       </div>
+
+      {/* ── Smart CSV Importer ── */}
+      {showImporter && (
+        <SmartImporter
+          onClose={() => setShowImporter(false)}
+          onSuccess={(count) => {
+            setShowImporter(false);
+            fetchStudents();
+            alert(`${count} estudiante(s) importados correctamente.`);
+          }}
+        />
+      )}
 
       {/* ── Add Student Modal ── */}
       <Modal

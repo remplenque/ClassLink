@@ -191,9 +191,11 @@ export default function MessagesPage() {
       }, (payload) => {
         const incoming = payload.new as MessageRow;
         setMessages((prev) => {
+          // Skip if we already have this message (optimistic or prior fetch)
           if (prev.some((m) => m.id === incoming.id)) return prev;
           return [...prev, incoming];
         });
+        // Mark as read if from other person
         if (incoming.sender_id !== user?.id) {
           supabase.from("messages").update({ read: true }).eq("id", incoming.id);
         }
@@ -240,7 +242,7 @@ export default function MessagesPage() {
     const text = input.trim();
     setInput("");
 
-    // Optimistic insert
+    // Optimistic insert — message appears immediately
     const tempId = `opt-${Date.now()}`;
     const optimistic: MessageRow = {
       id: tempId,
@@ -255,16 +257,20 @@ export default function MessagesPage() {
     const { data, error: err } = await supabase
       .from("messages")
       .insert({ conversation_id: activeConvo.id, sender_id: user.id, content: text, read: false })
-      .select()
+      .select("id, conversation_id, sender_id, content, read, created_at")
       .single();
 
     if (err) {
       setError("No se pudo enviar el mensaje.");
+      // Roll back optimistic message and restore input so user can retry
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setInput(text);
     } else if (data) {
+      // Replace optimistic entry with the real DB record
       setMessages((prev) =>
         prev.map((m) => m.id === tempId ? (data as MessageRow) : m)
       );
+      // Update last preview in sidebar
       setConvos((prev) =>
         prev.map((c) =>
           c.id === activeConvo.id

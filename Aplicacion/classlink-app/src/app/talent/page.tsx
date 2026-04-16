@@ -5,11 +5,14 @@ import { useRole } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { TP_SPECIALTIES } from "@/lib/specialties";
+import SkillAssessmentActivity from "@/components/talent/SkillAssessmentActivity";
+import TechQuizActivity       from "@/components/talent/TechQuizActivity";
+import CareerMatchActivity    from "@/components/talent/CareerMatchActivity";
 import {
   Search, SlidersHorizontal, MapPin, Award, Star,
   CheckCircle, Clock, XCircle, ChevronDown, X,
   Loader2, MessageCircle, Zap, Trophy, Flame, Lock,
-  BookOpen, Code, Wrench, Lightbulb, Target, Shield,
+  BookOpen, Code, Wrench, Lightbulb, Target, Shield, Brain, Compass, Cpu,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,7 +41,10 @@ function ActivitiesPlayground() {
   const [profile, setProfile]   = useState<{ xp: number; level: number; streak: number; badges: number } | null>(null);
   const [loading, setLoading]   = useState(true);
   const [catFilter, setCatFilter] = useState<string>("all");
-  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [completedIds,   setCompletedIds]   = useState<Set<string>>(new Set());
+  const [showActivity,   setShowActivity]   = useState(false);
+  const [showTechQuiz,   setShowTechQuiz]   = useState(false);
+  const [showCareerMatch, setShowCareerMatch] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -149,6 +155,97 @@ function ActivitiesPlayground() {
 
       {/* Activities grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* ── Skill Assessment card ───────────────────────── */}
+        {(catFilter === "all" || catFilter === "soft") && (
+          <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl border border-violet-200/60 overflow-hidden hover:shadow-md transition-all animate-fade-in-up">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-violet-100">
+                  <Brain size={22} className="text-violet-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-sm leading-tight">Evaluación de Competencias</h3>
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">+80 XP</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    5 escenarios laborales reales. Evalúa comunicación, liderazgo, empatía y más.
+                  </p>
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowActivity(true)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all bg-violet-600 hover:bg-violet-700 text-white"
+                    >
+                      Iniciar evaluación
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tech Quiz card ──────────────────────────────── */}
+        {(catFilter === "all" || catFilter === "tech") && (
+          <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-2xl border border-cyan-200/60 overflow-hidden hover:shadow-md transition-all animate-fade-in-up stagger-1">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-cyan-100">
+                  <Cpu size={22} className="text-cyan-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-sm leading-tight">Quiz Técnico Cronometrado</h3>
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700">+60 XP</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    8 preguntas técnicas con 20 segundos por respuesta. Feedback inmediato en cada una.
+                  </p>
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowTechQuiz(true)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all bg-cyan-600 hover:bg-cyan-700 text-white"
+                    >
+                      Iniciar quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Career Match card ───────────────────────────── */}
+        {(catFilter === "all" || catFilter === "career") && (
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl border border-emerald-200/60 overflow-hidden hover:shadow-md transition-all animate-fade-in-up stagger-2">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-emerald-100">
+                  <Compass size={22} className="text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-sm leading-tight">Descubre tu Perfil de Carrera</h3>
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">+40 XP</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    8 fichas de carrera. Marca tu nivel de interés y descubre qué áreas te atraen más.
+                  </p>
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowCareerMatch(true)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      Explorar carreras
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {displayed.map((act, i) => {
           const isDone = completedIds.has(act.id);
           const Icon   = act.icon;
@@ -216,6 +313,29 @@ function ActivitiesPlayground() {
           </div>
         </div>
       </div>
+
+      {/* ── Activity overlays ─────────────────────────────── */}
+      {showActivity && user?.id && (
+        <SkillAssessmentActivity
+          userId={user.id}
+          onClose={() => setShowActivity(false)}
+          onXPEarned={(xp) => setProfile((p) => p ? { ...p, xp: p.xp + xp } : p)}
+        />
+      )}
+      {showTechQuiz && user?.id && (
+        <TechQuizActivity
+          userId={user.id}
+          onClose={() => setShowTechQuiz(false)}
+          onXPEarned={(xp) => setProfile((p) => p ? { ...p, xp: p.xp + xp } : p)}
+        />
+      )}
+      {showCareerMatch && user?.id && (
+        <CareerMatchActivity
+          userId={user.id}
+          onClose={() => setShowCareerMatch(false)}
+          onXPEarned={(xp) => setProfile((p) => p ? { ...p, xp: p.xp + xp } : p)}
+        />
+      )}
     </div>
   );
 }
