@@ -15,12 +15,13 @@ import {
   graduateStudent,
   updateStudentProfile,
   upsertSchoolReport,
+  validateStudentSkill,
 } from "@/app/actions/school";
 import { updateInternshipRequest } from "@/app/actions/company";
 import SmartImporter from "@/components/admin/SmartImporter";
 import {
   GraduationCap, Plus, Search, TrendingUp, Users, FileText,
-  Loader2, CheckCircle2, XCircle, ChevronRight, Upload,
+  Loader2, CheckCircle2, XCircle, ChevronRight, Upload, ShieldCheck,
 } from "lucide-react";
 import { TP_SPECIALTIES } from "@/lib/specialties";
 
@@ -87,6 +88,11 @@ export default function AdministracionPage() {
   const [mgmtReportLoaded,setMgmtReportLoaded]= useState(false);
   const [mgmtSaving,      setMgmtSaving]      = useState<"att"|"skills"|"report"|null>(null);
   const [mgmtMsg,         setMgmtMsg]         = useState<{type:"ok"|"err"; text:string}|null>(null);
+
+  // ── Skill validation ──────────────────────────────────
+  interface MgmtSkill { skill_id: string; name: string; validated: boolean }
+  const [mgmtSkills,       setMgmtSkills]       = useState<MgmtSkill[]>([]);
+  const [validatingSkillId,setValidatingSkillId] = useState<string | null>(null);
 
   // ── Internship requests ───────────────────────────────
   const [internshipReqs,  setInternshipReqs]  = useState<DbInternshipRequest[]>([]);
@@ -190,21 +196,57 @@ export default function AdministracionPage() {
     setMgmtSkillsStr(Array.isArray(s.soft_skills) ? (s.soft_skills as string[]).join(", ") : "");
     setMgmtMsg(null);
     setMgmtReportLoaded(false);
+    setMgmtSkills([]);
     setMgmtPeriod(""); setMgmtSummary(""); setMgmtTeacher(""); setMgmtBehavior("");
-    const { data } = await supabase
-      .from("school_reports")
-      .select("period, summary, teacher_comment, behavior_note")
-      .eq("student_id", s.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-    if (data) {
-      setMgmtPeriod(data.period ?? "");
-      setMgmtSummary(data.summary ?? "");
-      setMgmtTeacher(data.teacher_comment ?? "");
-      setMgmtBehavior(data.behavior_note ?? "");
+
+    // Fetch school report, student skills, and existing validations in parallel
+    const [reportRes, skillsRes, validRes] = await Promise.all([
+      supabase
+        .from("school_reports")
+        .select("period, summary, teacher_comment, behavior_note")
+        .eq("student_id", s.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single(),
+      supabase
+        .from("user_skills")
+        .select("skills!user_skills_skill_id_fkey(id, name)")
+        .eq("user_id", s.id),
+      supabase
+        .from("skill_validations")
+        .select("skill_id")
+        .eq("student_id", s.id),
+    ]);
+
+    if (reportRes.data) {
+      setMgmtPeriod(reportRes.data.period ?? "");
+      setMgmtSummary(reportRes.data.summary ?? "");
+      setMgmtTeacher(reportRes.data.teacher_comment ?? "");
+      setMgmtBehavior(reportRes.data.behavior_note ?? "");
     }
+
+    const validatedIds = new Set((validRes.data ?? []).map((v: any) => v.skill_id as string));
+    const mapped: MgmtSkill[] = (skillsRes.data ?? []).map((row: any) => ({
+      skill_id:  row.skills?.id   ?? "",
+      name:      row.skills?.name ?? "Habilidad",
+      validated: validatedIds.has(row.skills?.id ?? ""),
+    })).filter((r: MgmtSkill) => r.skill_id);
+    setMgmtSkills(mapped);
     setMgmtReportLoaded(true);
+  };
+
+  const handleValidateSkill = async (studentId: string, skillId: string) => {
+    setValidatingSkillId(skillId);
+    const res = await validateStudentSkill(studentId, skillId);
+    setValidatingSkillId(null);
+    if ("error" in res && res.error) {
+      setMgmtMsg({ type: "err", text: res.error });
+    } else {
+      setMgmtSkills((prev) =>
+        prev.map((sk) => sk.skill_id === skillId ? { ...sk, validated: true } : sk)
+      );
+      setMgmtMsg({ type: "ok", text: "¡Habilidad validada! El estudiante recibió +100 pts de reputación." });
+    }
   };
 
   const handleSaveAtt = async () => {
@@ -525,6 +567,68 @@ export default function AdministracionPage() {
                                 ? <><Loader2 size={12} className="animate-spin" /> Guardando…</>
                                 : "Guardar habilidades"}
                             </button>
+                          </div>
+
+                          {/* ── Validación de Habilidades Técnicas ── */}
+                          <div className="bg-white rounded-xl p-4 border border-amber-200/60 relative overflow-hidden">
+                            <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400 to-orange-400" />
+                            <div className="flex items-center gap-2 mb-3">
+                              <ShieldCheck size={14} className="text-amber-500" />
+                              <h5 className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+                                Validar Habilidades Técnicas
+                              </h5>
+                              <span className="ml-auto text-[10px] text-slate-400">
+                                +100 pts de reputación por habilidad
+                              </span>
+                            </div>
+
+                            {mgmtSkills.length === 0 ? (
+                              <p className="text-xs text-slate-400 text-center py-4">
+                                El estudiante no tiene habilidades registradas aún.
+                                Puede agregarlas desde su perfil.
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {mgmtSkills.map((sk) => (
+                                  <div
+                                    key={sk.skill_id}
+                                    className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                                      sk.validated
+                                        ? "bg-amber-50 border-amber-200"
+                                        : "bg-slate-50 border-slate-200"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {sk.validated
+                                        ? <ShieldCheck size={13} className="text-amber-500 shrink-0" />
+                                        : <div className="w-3 h-3 rounded-full border-2 border-slate-300 shrink-0" />
+                                      }
+                                      <span className={`text-xs font-semibold truncate ${sk.validated ? "text-amber-800" : "text-slate-700"}`}>
+                                        {sk.name}
+                                      </span>
+                                    </div>
+                                    {sk.validated ? (
+                                      <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                                        Validada
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleValidateSkill(s.id, sk.skill_id)}
+                                        disabled={validatingSkillId === sk.skill_id}
+                                        aria-label={`Validar habilidad ${sk.name}`}
+                                        className="text-[10px] font-bold px-3 py-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg transition-colors shrink-0 flex items-center gap-1"
+                                      >
+                                        {validatingSkillId === sk.skill_id
+                                          ? <Loader2 size={10} className="animate-spin" />
+                                          : <ShieldCheck size={10} />
+                                        }
+                                        Validar
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           {/* Reporte del Colegio */}

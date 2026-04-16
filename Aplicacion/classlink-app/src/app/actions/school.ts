@@ -351,3 +351,59 @@ export async function upsertSchoolReport(
 
   return { success: true };
 }
+
+
+// ── validateStudentSkill ─────────────────────────────────
+// Inserts a skill_validations row — the DB trigger then awards the badge,
+// logs the reputation event, and notifies the student.
+// Only the student's own school can validate.
+export async function validateStudentSkill(
+  studentId: string,
+  skillId:   string,
+  note?:     string
+): Promise<{ success?: boolean; error?: string }> {
+  const cookieStore = await cookies();
+  const supabase    = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+
+  const { data: { user: caller }, error: sessionErr } = await supabase.auth.getUser();
+  if (sessionErr || !caller) return { error: "No autenticado." };
+
+  const { data: schoolProfile } = await supabase
+    .from("profiles")
+    .select("role, id")
+    .eq("id", caller.id)
+    .single();
+
+  if (!schoolProfile || schoolProfile.role !== "Colegio") {
+    return { error: "Solo un Colegio puede validar habilidades." };
+  }
+
+  // Confirm the student belongs to this school
+  const { data: studentProfile } = await supabase
+    .from("profiles")
+    .select("school_id")
+    .eq("id", studentId)
+    .single();
+
+  if (!studentProfile || studentProfile.school_id !== schoolProfile.id) {
+    return { error: "El estudiante no pertenece a este centro." };
+  }
+
+  // Insert validation — trigger handles badge + reputation + notification
+  const { error: insertErr } = await supabase
+    .from("skill_validations")
+    .insert({
+      student_id:   studentId,
+      skill_id:     skillId,
+      validator_id: schoolProfile.id,
+      note:         note?.trim() ?? "",
+    });
+
+  if (insertErr) {
+    // Unique violation = already validated
+    if (insertErr.code === "23505") return { success: true };
+    return { error: insertErr.message };
+  }
+
+  return { success: true };
+}

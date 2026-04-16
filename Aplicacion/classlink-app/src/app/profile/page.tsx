@@ -269,7 +269,7 @@ export default function ProfilePage() {
         department, duration, paid, salary,
         job_applications (
           id, status,
-          profiles!job_applications_student_id_fkey (id, name, avatar, specialty)
+          profiles!job_applications_applicant_id_fkey (id, name, avatar, specialty)
         )
       `)
       .eq("company_id", user.id)

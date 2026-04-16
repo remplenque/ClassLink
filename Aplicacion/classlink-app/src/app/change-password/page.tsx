@@ -63,13 +63,17 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      // Clear the server-side flag
+      // Clear the server-side flag (updates app_metadata via admin API)
       const result = await clearMustChangePassword();
       if ("error" in result && result.error) {
         setError(result.error);
         setIsSubmitting(false);
         return;
       }
+
+      // Force a session refresh so onAuthStateChange re-reads app_metadata
+      // with must_change_password=false, unmounting the popup permanently.
+      await supabase.auth.refreshSession();
 
       setSuccess(true);
       setTimeout(() => router.replace("/"), 1500);

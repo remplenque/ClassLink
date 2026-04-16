@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { postSchema } from "@/lib/schemas";
 import DOMPurify from "isomorphic-dompurify";
-import { TP_SPECIALTIES, TAG_FILTERS } from "@/lib/specialties";
+import { TP_SPECIALTIES, TAG_FILTERS, SOFT_SKILLS } from "@/lib/specialties";
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -62,9 +62,11 @@ export default function MuroPage() {
   const [postOffset,  setPostOffset]  = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobPosts,    setJobPosts]    = useState<FeedPost[]>([]);
-  const [tab,         setTab]         = useState<string>("Todos");
-  const [tagFilter,   setTagFilter]   = useState("Todos");
-  const [search,      setSearch]      = useState("");
+  const [tab,              setTab]              = useState<string>("Todos");
+  const [tagFilter,        setTagFilter]        = useState("Todos");
+  const [softSkillFilters, setSoftSkillFilters] = useState<Set<string>>(new Set());
+  const [trendingTagData,  setTrendingTagData]  = useState<{ tag: string; post_count: number }[]>([]);
+  const [search,           setSearch]           = useState("");
   const [modalOpen,   setModalOpen]   = useState(false);
   const [isFetching,  setIsFetching]  = useState(true);
   const [isPosting,   setIsPosting]   = useState(false);
@@ -192,6 +194,13 @@ export default function MuroPage() {
     setJobPosts(mapped);
   }, []);
 
+  // ── Fetch trending tags from DB ────────────────────────
+
+  const fetchTrendingTags = useCallback(async () => {
+    const { data } = await supabase.rpc("get_trending_tags", { p_limit: 8 });
+    if (data) setTrendingTagData(data as { tag: string; post_count: number }[]);
+  }, []);
+
   // ── Fetch active members ───────────────────────────────
 
   const fetchMembers = useCallback(async () => {
@@ -243,7 +252,8 @@ export default function MuroPage() {
     fetchSavedPosts();
     fetchAppliedJobs();
     fetchMyProfile();
-  }, [fetchPosts, fetchJobPostings, fetchMembers, fetchSavedPosts, fetchAppliedJobs, fetchMyProfile]);
+    fetchTrendingTags();
+  }, [fetchPosts, fetchJobPostings, fetchMembers, fetchSavedPosts, fetchAppliedJobs, fetchMyProfile, fetchTrendingTags]);
 
   // ── Toggle save post ───────────────────────────────────
   const toggleSave = async (postId: string) => {
@@ -323,20 +333,32 @@ export default function MuroPage() {
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
+    // Optimistic update
+    const wasLiked = post.liked;
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
-          ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+          ? { ...p, liked: !wasLiked, likes: wasLiked ? p.likes - 1 : p.likes + 1 }
           : p
       )
     );
-    if (!post.liked) playLike();
+    if (!wasLiked) playLike();
 
-    if (post.liked) {
-      await supabase.from("post_likes").delete()
-        .eq("post_id", postId).eq("user_id", user.id);
+    // Atomic RPC keeps likes_count and post_likes in sync with no race condition
+    const { data: newCount, error } = await supabase.rpc("toggle_post_like", {
+      p_post_id: postId,
+      p_user_id: user.id,
+    });
+    if (error) {
+      // Rollback on failure
+      setPosts((prev) =>
+        prev.map((p) => p.id === postId ? { ...p, liked: wasLiked, likes: wasLiked ? p.likes + 1 : p.likes - 1 } : p)
+      );
     } else {
-      await supabase.from("post_likes").insert({ post_id: postId, user_id: user.id });
+      // Reconcile count from the authoritative DB value
+      setPosts((prev) =>
+        prev.map((p) => p.id === postId ? { ...p, likes: newCount as number } : p)
+      );
     }
   };
 
@@ -474,17 +496,18 @@ export default function MuroPage() {
       createdAt:    new Date().toISOString().split("T")[0],
     };
 
-    // Optimistic update
+    // Optimistic update — comment and counter appear instantly
     setCommentsByPost((prev) => ({ ...prev, [postId]: [...(prev[postId] ?? []), optimistic] }));
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
     setCommentDraft("");
     playComment();
 
-    const { data, error } = await supabase
-      .from("post_comments")
-      .insert({ post_id: postId, author_id: user.id, content: draft })
-      .select(`id, post_id, content, created_at, author_id, profiles!author_id(name, avatar, role)`)
-      .single();
+    // Atomic RPC: inserts comment + increments comments_count in one transaction
+    const { data, error } = await supabase.rpc("add_post_comment", {
+      p_post_id: postId,
+      p_user_id: user.id,
+      p_content: draft,
+    });
 
     if (error) {
       // Rollback
@@ -495,15 +518,16 @@ export default function MuroPage() {
       setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments - 1 } : p));
       setCommentDraft(draft);
     } else if (data) {
+      const d = data as any;
       const real: PostComment = {
-        id:           data.id,
-        postId:       data.post_id,
-        authorId:     data.author_id,
-        authorName:   (data as any).profiles?.name   ?? user.name,
-        authorAvatar: (data as any).profiles?.avatar ?? user.avatar ?? "",
-        authorRole:   (data as any).profiles?.role   ?? user.role,
-        content:      data.content,
-        createdAt:    (data.created_at ?? "").split("T")[0],
+        id:           d.id,
+        postId:       d.post_id,
+        authorId:     d.author_id,
+        authorName:   d.profiles?.name   ?? user.name,
+        authorAvatar: d.profiles?.avatar ?? user.avatar ?? "",
+        authorRole:   d.profiles?.role   ?? user.role,
+        content:      d.content,
+        createdAt:    (d.created_at ?? "").split("T")[0],
       };
       setCommentsByPost((prev) => ({
         ...prev,
@@ -529,30 +553,45 @@ export default function MuroPage() {
   const canSave  = role === "Estudiante" || role === "Egresado";
   const canApply = role === "Estudiante" || role === "Egresado";
 
+  const toggleSoftSkill = (skill: string) => {
+    setSoftSkillFilters((prev) => {
+      const next = new Set(prev);
+      next.has(skill) ? next.delete(skill) : next.add(skill);
+      return next;
+    });
+  };
+
   const filtered = allPosts.filter((p) => {
     const matchTab =
       tab === "Todos" ||
       tab === "Guardados" ||
-      (tab === "Portafolios"       && p.category === "portafolio") ||
-      (tab === "Eventos"           && (p.category === "evento" || p.category === "publicacion")) ||
+      (tab === "Portafolios"        && p.category === "portafolio") ||
+      (tab === "Eventos"            && (p.category === "evento" || p.category === "publicacion")) ||
       (tab === "Ofertas de Trabajo" && p.category === "oferta");
+
+    // Tag filter (specialty chip selected in sidebar)
+    const matchTag =
+      tagFilter === "Todos" ||
+      (p.tag ?? "").toLowerCase() === tagFilter.toLowerCase();
+
     const matchSearch =
       search === "" ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       (p.authorName ?? "").toLowerCase().includes(search.toLowerCase());
-    return matchTab && matchSearch;
+
+    // Soft skills: check if all selected skills appear in title/description
+    const matchSoftSkills =
+      softSkillFilters.size === 0 ||
+      Array.from(softSkillFilters).every((skill) => {
+        const hay = `${p.title} ${p.description} ${p.content}`.toLowerCase();
+        return hay.includes(skill.toLowerCase());
+      });
+
+    return matchTab && matchTag && matchSearch && matchSoftSkills;
   });
 
-  const trendingTags = [
-    { name: "Mecatrónica",                 posts: 24 },
-    { name: "Soldadura",                   posts: 18 },
-    { name: "Electricidad",                posts: 15 },
-    { name: "Ebanistería",                 posts: 11 },
-    { name: "Construcción",                posts:  9 },
-    { name: "Mecánica Automotriz",         posts:  8 },
-    { name: "Refrigeración y Climatización", posts: 7 },
-    { name: "Evento",                      posts:  6 },
-  ];
+  // Dynamic trending tags from DB (fallback to empty until loaded)
+  const trendingTags = trendingTagData.map((t) => ({ name: t.tag, posts: t.post_count }));
 
   // ── Render ────────────────────────────────────────────
 
@@ -624,6 +663,35 @@ export default function MuroPage() {
                 )}
               </button>
             ))}
+          </div>
+
+          {/* ── Soft Skills multi-select filter ── */}
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {(Array.from(SOFT_SKILLS) as string[]).map((skill) => {
+              const active = softSkillFilters.has(skill);
+              return (
+                <button
+                  key={skill}
+                  onClick={() => toggleSoftSkill(skill)}
+                  aria-pressed={active}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
+                    active
+                      ? "bg-teal-600 text-white border-teal-600 shadow-sm"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-teal-400 hover:text-teal-600"
+                  }`}
+                >
+                  {skill}
+                </button>
+              );
+            })}
+            {softSkillFilters.size > 0 && (
+              <button
+                onClick={() => setSoftSkillFilters(new Set())}
+                className="px-3 py-1 rounded-full text-[11px] font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-all"
+              >
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
 
