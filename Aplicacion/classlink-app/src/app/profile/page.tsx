@@ -222,12 +222,17 @@ export default function ProfilePage() {
     const [{ data: userBadges }, { data: allBadges }, { data: svData }] = await Promise.all([
       supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
       supabase.from("badges").select("id, name, icon, description"),
-      supabase.from("skill_validations").select("skill_name").eq("student_id", user.id),
+      supabase
+        .from("skill_validations")
+        .select("skills!skill_validations_skill_id_fkey(name)")
+        .eq("student_id", user.id),
     ]);
     type BadgeRow  = { id: string; name: string; icon: string; description: string };
     type EarnedRow = { badge_id: string; earned_at: string | null };
     const earned     = new Map((userBadges ?? []).map((r: EarnedRow) => [r.badge_id, r.earned_at]));
-    const skillNames = new Set((svData ?? []).map((r: any) => r.skill_name as string));
+    const skillNames = new Set(
+      (svData ?? []).map((r: any) => (r.skills as { name?: string } | null)?.name ?? "").filter(Boolean)
+    );
     const VALIDATED_BADGE_NAMES = new Set(["Habilidad Técnica Validada", "Aval Institucional"]);
     setBadges(
       (allBadges ?? []).map((b: BadgeRow) => ({

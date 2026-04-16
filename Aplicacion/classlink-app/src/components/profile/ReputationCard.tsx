@@ -19,9 +19,9 @@ interface ReputationEvent {
 }
 
 interface SkillValidation {
-  skill_name: string;
   created_at: string;
-  school: { name: string; school_name: string } | null;
+  skills: { name: string } | null;
+  validator: { name: string; school_name: string } | null;
 }
 
 interface ReputationCardProps {
@@ -76,7 +76,7 @@ export default function ReputationCard({
         .limit(8),
       supabase
         .from("skill_validations")
-        .select("skill_name, created_at, school:profiles!skill_validations_school_id_fkey(name, school_name)")
+        .select("created_at, skills!skill_validations_skill_id_fkey(name), validator:profiles!skill_validations_validator_id_fkey(name, school_name)")
         .eq("student_id", studentId)
         .order("created_at", { ascending: false })
         .limit(10),
@@ -181,9 +181,13 @@ export default function ReputationCard({
                     <div key={i} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5">
                       <ShieldCheck size={11} className="text-amber-500 shrink-0" />
                       <div>
-                        <p className="text-[11px] font-bold text-amber-800 leading-none">{v.skill_name}</p>
+                        <p className="text-[11px] font-bold text-amber-800 leading-none">
+                          {(v.skills as any)?.name ?? "Habilidad técnica"}
+                        </p>
                         <p className="text-[9px] text-amber-600 mt-0.5">
-                          {v.school ? (v.school.school_name || v.school.name) : "Institución"}
+                          {v.validator
+                            ? ((v.validator as any).school_name || (v.validator as any).name)
+                            : "Institución"}
                         </p>
                       </div>
                     </div>
