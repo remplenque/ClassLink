@@ -11,6 +11,7 @@ import { TP_SPECIALTIES } from "@/lib/specialties";
 import {
   Briefcase, MapPin, Plus, Loader2, ChevronDown, X, Send, CheckCircle,
   Users, CheckCircle2, XCircle, ArrowUp, ArrowDown, Trophy,
+  UserPlus, UserCheck,
 } from "lucide-react";
 
 interface JobPosting {
@@ -44,6 +45,9 @@ export default function EmpleosPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState<string | null>(null);
+  // Company follow state (student-only)
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
+  const [followingId, setFollowingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editJob, setEditJob] = useState<JobPosting | null>(null);
   const [saving, setSaving] = useState(false);
@@ -96,7 +100,16 @@ export default function EmpleosPage() {
     setAppliedIds(new Set((data ?? []).map((a: any) => a.job_id)));
   }, [user?.id, isCompany]);
 
-  useEffect(() => { fetchJobs(); fetchMyApplications(); }, [fetchJobs, fetchMyApplications]);
+  const fetchMyFollows = useCallback(async () => {
+    if (!user?.id || isCompany) return;
+    const { data } = await supabase
+      .from("company_follows")
+      .select("company_id")
+      .eq("student_id", user.id);
+    setFollowedIds(new Set((data ?? []).map((r: any) => r.company_id)));
+  }, [user?.id, isCompany]);
+
+  useEffect(() => { fetchJobs(); fetchMyApplications(); fetchMyFollows(); }, [fetchJobs, fetchMyApplications, fetchMyFollows]);
 
   const openCreate = () => {
     setEditJob(null);
@@ -223,6 +236,26 @@ export default function EmpleosPage() {
       }).catch(() => {});
     }
     setApplying(null);
+  };
+
+  const toggleFollow = async (companyId: string) => {
+    if (!user?.id || isCompany) return;
+    setFollowingId(companyId);
+    const isFollowing = followedIds.has(companyId);
+    if (isFollowing) {
+      await supabase
+        .from("company_follows")
+        .delete()
+        .eq("student_id", user.id)
+        .eq("company_id", companyId);
+      setFollowedIds((prev) => { const next = new Set(prev); next.delete(companyId); return next; });
+    } else {
+      await supabase
+        .from("company_follows")
+        .insert({ student_id: user.id, company_id: companyId });
+      setFollowedIds((prev) => new Set(prev).add(companyId));
+    }
+    setFollowingId(null);
   };
 
   return (
@@ -469,15 +502,39 @@ export default function EmpleosPage() {
                           <button onClick={() => handleDelete(job.id)} className="px-3 py-1.5 rounded-xl text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors">Eliminar</button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => handleApply(job.id)}
-                          disabled={hasApplied || applying === job.id || !job.active}
-                          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all btn-press disabled:opacity-50 ${hasApplied ? "bg-emerald-500" : "bg-cyan-600 hover:bg-cyan-700"}`}
-                        >
-                          {applying === job.id ? <Loader2 size={12} className="animate-spin" /> :
-                           hasApplied ? <><CheckCircle size={12} />Postulado</> :
-                           <><Send size={12} />Postularse</>}
-                        </button>
+                        <>
+                          {/* Follow / Unfollow company */}
+                          {job.company_id && (
+                            <button
+                              onClick={() => toggleFollow(job.company_id)}
+                              disabled={followingId === job.company_id}
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all btn-press disabled:opacity-50 ${
+                                followedIds.has(job.company_id)
+                                  ? "bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-500"
+                                  : "bg-slate-50 border border-slate-200 text-slate-500 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200"
+                              }`}
+                              title={followedIds.has(job.company_id) ? "Dejar de seguir empresa" : "Seguir empresa"}
+                            >
+                              {followingId === job.company_id
+                                ? <Loader2 size={12} className="animate-spin" />
+                                : followedIds.has(job.company_id)
+                                ? <UserCheck size={12} />
+                                : <UserPlus size={12} />
+                              }
+                              {followedIds.has(job.company_id) ? "Siguiendo" : "Seguir"}
+                            </button>
+                          )}
+                          {/* Apply */}
+                          <button
+                            onClick={() => handleApply(job.id)}
+                            disabled={hasApplied || applying === job.id || !job.active}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all btn-press disabled:opacity-50 ${hasApplied ? "bg-emerald-500" : "bg-cyan-600 hover:bg-cyan-700"}`}
+                          >
+                            {applying === job.id ? <Loader2 size={12} className="animate-spin" /> :
+                             hasApplied ? <><CheckCircle size={12} />Postulado</> :
+                             <><Send size={12} />Postularse</>}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

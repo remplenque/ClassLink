@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { clearMustChangePassword } from "@/app/actions/school";
 import { Eye, EyeOff, KeyRound, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -55,11 +55,7 @@ export default function ChangePasswordPage() {
     setIsSubmitting(true);
 
     try {
-      // Update password via client SDK (user is already authenticated)
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      // Update password via the shared SSR-aware client (session is inherited from cookies)
       const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
       if (updateErr) {
         setError(updateErr.message);

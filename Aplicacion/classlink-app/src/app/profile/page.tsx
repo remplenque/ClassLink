@@ -34,6 +34,10 @@ interface Profile {
   soft_skills: string[] | null;
   attendance: number | null;
   rut: string | null;
+  // Metadata
+  created_at: string;
+  // Institutional backing (student)
+  school_id: string | null;
 }
 
 interface DbSchoolReport {
@@ -50,11 +54,20 @@ interface UserBadge {
   earned: boolean; earned_at: string | null;
 }
 
+interface SchoolProfileData {
+  id: string;
+  name: string;
+  avatar: string;
+  school_name: string;
+  location: string;
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile]   = useState<Profile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [badges, setBadges]     = useState<UserBadge[]>([]);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfileData | null>(null);
   const [tab, setTab]           = useState("Resumen");
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
@@ -319,6 +332,16 @@ export default function ProfilePage() {
     setLocalSkills(names);
   }, [user?.id]);
 
+  // Fetch the origin school data for a student profile (Aval Institucional)
+  const fetchSchoolProfile = useCallback(async (schoolId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, avatar, school_name, location")
+      .eq("id", schoolId)
+      .single();
+    setSchoolProfile((data as SchoolProfileData | null) ?? null);
+  }, []);
+
   const fetchInternshipRequests = useCallback(async () => {
     if (!user?.id) return;
     setReqsLoading(true);
@@ -361,18 +384,22 @@ export default function ProfilePage() {
     if (!profile) return;
     if (profile.soft_skills) setLocalSoftSkills(profile.soft_skills);
     if (profile.role === "Empresa") fetchVacancies();
-    if (profile.role === "Estudiante") {
+    if (profile.role === "Estudiante" || profile.role === "Egresado") {
       fetchSchoolReport();
       fetchUserSkills();
+      if (profile.school_id) fetchSchoolProfile(profile.school_id);
     }
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Welcome popup for new accounts
+  // Welcome popup — only shown to students whose account is at least 1 hour old.
+  // Brand-new users are exempt so they can explore freely before being prompted.
   useEffect(() => {
     if (profile?.role === "Estudiante" && !localStorage.getItem("cl_onboarded")) {
-      setShowOnboarding(true);
+      const ageMs   = profile.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
+      const ageHrs  = ageMs / (1000 * 60 * 60);
+      if (ageHrs >= 1) setShowOnboarding(true);
     }
-  }, [profile?.role]);
+  }, [profile?.role, profile?.created_at]);
 
   const openEdit = () => {
     if (!profile) return;
@@ -1194,6 +1221,54 @@ export default function ProfilePage() {
                   <span>Ir a Administración</span>
                   <ChevronRight size={16} />
                 </a>
+              </div>
+            )}
+
+            {/* ── Aval Institucional (students & graduates who belong to a school) ── */}
+            {isStudent && schoolProfile && (
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/60 overflow-hidden relative">
+                {/* subtle gradient top bar */}
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 rounded-t-2xl" />
+                <div className="flex items-center gap-2 mb-3 mt-1">
+                  <Award size={15} className="text-amber-500 shrink-0" />
+                  <h3 className="text-sm font-bold text-slate-700">Aval Institucional</h3>
+                  <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                    <CheckCircle size={10} /> Verificado
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {schoolProfile.avatar ? (
+                    <img
+                      src={schoolProfile.avatar}
+                      alt={schoolProfile.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-slate-100 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-black text-lg shrink-0 shadow-sm">
+                      {(schoolProfile.school_name || schoolProfile.name).charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate leading-tight">
+                      {schoolProfile.school_name || schoolProfile.name}
+                    </p>
+                    {profile.specialty && (
+                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                        <GraduationCap size={10} className="shrink-0" />
+                        {profile.specialty}
+                      </p>
+                    )}
+                    {schoolProfile.location && (
+                      <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                        <MapPin size={10} className="shrink-0" />
+                        {schoolProfile.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-3 leading-relaxed border-t border-slate-100 pt-3">
+                  Este estudiante cuenta con el respaldo de su institución educativa, lo que valida su formación técnica y trayectoria académica.
+                </p>
               </div>
             )}
 

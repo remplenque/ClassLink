@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Send, Search, Circle, Loader2, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Send, Search, Loader2, Trash2, MoreVertical, Check, CheckCheck } from "lucide-react";
 
 interface Participant {
   id: string;
@@ -19,6 +19,7 @@ interface ConversationRow {
   last_message_at: string;
   other: Participant;
   lastPreview: string;
+  lastSenderId: string;
   unread: number;
 }
 
@@ -29,6 +30,24 @@ interface MessageRow {
   content: string;
   read: boolean;
   created_at: string;
+}
+
+// ── Timestamp helpers ────────────────────────────────────
+
+function fmtRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hrs   = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins < 1)  return "Ahora";
+  if (mins < 60) return `${mins}m`;
+  if (hrs  < 24) return `${hrs}h`;
+  if (days < 7)  return `${days}d`;
+  return new Date(iso).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
+}
+
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function MessagesPage() {
@@ -44,7 +63,7 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversations
+  // Fetch conversations + enrich with unread count + last message preview
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
     setLoadingConvos(true);
@@ -62,7 +81,7 @@ export default function MessagesPage() {
 
       if (err) throw err;
 
-      const rows: ConversationRow[] = (data ?? []).map((c: any) => {
+      const baseRows: ConversationRow[] = (data ?? []).map((c: any) => {
         const other: Participant = c.user1_id === user.id ? c.user2 : c.user1;
         return {
           id: c.id,
@@ -71,10 +90,56 @@ export default function MessagesPage() {
           last_message_at: c.last_message_at,
           other: other ?? { id: "", name: "Usuario", avatar: "", role: "" },
           lastPreview: "",
+          lastSenderId: "",
           unread: 0,
         };
       });
-      setConvos(rows);
+
+      if (baseRows.length === 0) { setConvos([]); setLoadingConvos(false); return; }
+
+      const convoIds = baseRows.map((r) => r.id);
+
+      // Parallel: last messages + unread counts
+      const [{ data: lastMsgData }, { data: unreadData }] = await Promise.all([
+        supabase
+          .from("messages")
+          .select("conversation_id, content, sender_id, read, created_at")
+          .in("conversation_id", convoIds)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("messages")
+          .select("conversation_id, id")
+          .in("conversation_id", convoIds)
+          .eq("read", false)
+          .neq("sender_id", user.id),
+      ]);
+
+      // Build last-message map (first occurrence per convo since sorted desc)
+      const lastMsgMap: Record<string, { content: string; sender_id: string; read: boolean }> = {};
+      (lastMsgData ?? []).forEach((m: any) => {
+        if (!lastMsgMap[m.conversation_id]) {
+          lastMsgMap[m.conversation_id] = {
+            content: m.content,
+            sender_id: m.sender_id,
+            read: m.read,
+          };
+        }
+      });
+
+      // Build unread count map
+      const unreadMap: Record<string, number> = {};
+      (unreadData ?? []).forEach((m: any) => {
+        unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] ?? 0) + 1;
+      });
+
+      const enriched = baseRows.map((r) => ({
+        ...r,
+        lastPreview:  lastMsgMap[r.id]?.content   ?? "",
+        lastSenderId: lastMsgMap[r.id]?.sender_id ?? "",
+        unread:       unreadMap[r.id]             ?? 0,
+      }));
+
+      setConvos(enriched);
     } catch {
       setError("No se pudieron cargar las conversaciones.");
     } finally {
@@ -96,12 +161,16 @@ export default function MessagesPage() {
 
     if (!err && data) {
       setMessages(data as MessageRow[]);
-      // Mark unread messages as read
+      // Mark received unread messages as read
       const unreadIds = (data as MessageRow[])
         .filter((m) => !m.read && m.sender_id !== user?.id)
         .map((m) => m.id);
       if (unreadIds.length > 0) {
         await supabase.from("messages").update({ read: true }).in("id", unreadIds);
+        // Reflect cleared badge in conversation list
+        setConvos((prev) =>
+          prev.map((c) => (c.id === convoId ? { ...c, unread: 0 } : c))
+        );
       }
     }
     setLoadingMsgs(false);
@@ -122,14 +191,29 @@ export default function MessagesPage() {
       }, (payload) => {
         const incoming = payload.new as MessageRow;
         setMessages((prev) => {
-          // Skip if already in state (our own optimistic insert was already replaced by real id)
           if (prev.some((m) => m.id === incoming.id)) return prev;
           return [...prev, incoming];
         });
-        // Mark as read if from the other person
         if (incoming.sender_id !== user?.id) {
           supabase.from("messages").update({ read: true }).eq("id", incoming.id);
         }
+        // Update last preview in sidebar
+        setConvos((prev) =>
+          prev.map((c) =>
+            c.id === activeConvo.id
+              ? { ...c, lastPreview: incoming.content, lastSenderId: incoming.sender_id, last_message_at: incoming.created_at }
+              : c
+          )
+        );
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${activeConvo.id}`,
+      }, (payload) => {
+        const updated = payload.new as MessageRow;
+        setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
       })
       .on("postgres_changes", {
         event: "DELETE",
@@ -156,7 +240,7 @@ export default function MessagesPage() {
     const text = input.trim();
     setInput("");
 
-    // Optimistic insert — message appears instantly in the UI
+    // Optimistic insert
     const tempId = `opt-${Date.now()}`;
     const optimistic: MessageRow = {
       id: tempId,
@@ -176,12 +260,17 @@ export default function MessagesPage() {
 
     if (err) {
       setError("No se pudo enviar el mensaje.");
-      // Roll back optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } else if (data) {
-      // Replace the temp message with the persisted row (real id, real timestamp)
       setMessages((prev) =>
         prev.map((m) => m.id === tempId ? (data as MessageRow) : m)
+      );
+      setConvos((prev) =>
+        prev.map((c) =>
+          c.id === activeConvo.id
+            ? { ...c, lastPreview: text, lastSenderId: user.id, last_message_at: (data as MessageRow).created_at }
+            : c
+        )
       );
     }
     setSending(false);
@@ -191,20 +280,33 @@ export default function MessagesPage() {
     await supabase.from("messages").delete().eq("id", msgId).eq("sender_id", user?.id ?? "");
   };
 
+  const openConvo = (c: ConversationRow) => {
+    setActiveConvo(c);
+    // Immediately clear local unread badge
+    setConvos((prev) => prev.map((x) => x.id === c.id ? { ...x, unread: 0 } : x));
+  };
+
   const filtered = convos.filter((c) =>
     c.other.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+  const totalUnread = convos.reduce((sum, c) => sum + c.unread, 0);
 
   return (
     <PageLayout>
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Left pane */}
+
+        {/* ── Left pane: conversation list ── */}
         <div className={`w-full md:w-80 lg:w-96 bg-white border-r border-slate-200/60 flex flex-col shrink-0 ${activeConvo ? "hidden md:flex" : "flex"}`}>
           <div className="p-4 border-b border-slate-100 shrink-0">
-            <h2 className="text-lg font-bold mb-3">Mensajes</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-lg font-bold flex-1">Mensajes</h2>
+              {totalUnread > 0 && (
+                <span className="bg-cyan-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
@@ -224,31 +326,62 @@ export default function MessagesPage() {
               <div className="text-center py-10 text-sm text-slate-400">No hay conversaciones aún.</div>
             )}
             {filtered.map((c) => (
-              <button key={c.id} onClick={() => setActiveConvo(c)}
-                className={`w-full flex items-center gap-3 p-4 hover:bg-slate-50/80 transition-colors text-left ${activeConvo?.id === c.id ? "bg-cyan-50/60" : ""}`}
+              <button key={c.id} onClick={() => openConvo(c)}
+                className={`w-full flex items-center gap-3 p-4 transition-colors text-left ${
+                  activeConvo?.id === c.id
+                    ? "bg-cyan-50/60"
+                    : c.unread > 0
+                    ? "bg-white hover:bg-slate-50/80"
+                    : "hover:bg-slate-50/80"
+                }`}
               >
+                {/* Avatar */}
                 <div className="relative shrink-0">
                   {c.other.avatar ? (
-                    <img src={c.other.avatar} alt={c.other.name} className="w-10 h-10 rounded-full object-cover" />
+                    <img src={c.other.avatar} alt={c.other.name} className="w-11 h-11 rounded-full object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-sm font-bold text-cyan-700">
+                    <div className="w-11 h-11 rounded-full bg-cyan-100 flex items-center justify-center text-sm font-bold text-cyan-700">
                       {c.other.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
+
+                {/* Text content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{c.other.name}</p>
-                  <p className="text-xs text-slate-400 truncate">{c.other.role}</p>
+                  <div className="flex items-baseline justify-between gap-1">
+                    <p className={`text-sm truncate ${c.unread > 0 ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
+                      {c.other.name}
+                    </p>
+                    <span className="text-[10px] text-slate-400 shrink-0">
+                      {c.last_message_at ? fmtRelative(c.last_message_at) : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-1 mt-0.5">
+                    <p className={`text-xs truncate ${c.unread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+                      {c.lastSenderId === user?.id && (
+                        <span className="mr-0.5 inline-flex items-center">
+                          <CheckCheck size={11} className="text-cyan-500" />
+                        </span>
+                      )}
+                      {c.lastPreview || <span className="italic">Sin mensajes</span>}
+                    </p>
+                    {c.unread > 0 && (
+                      <span className="bg-cyan-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0">
+                        {c.unread > 99 ? "99+" : c.unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Right pane */}
+        {/* ── Right pane: active conversation ── */}
         <div className={`flex-1 flex flex-col bg-slate-50/80 ${!activeConvo ? "hidden md:flex" : "flex"}`}>
           {activeConvo ? (
             <>
+              {/* Header */}
               <div className="bg-white border-b border-slate-200/60 px-4 py-3 flex items-center gap-3 shrink-0">
                 <button onClick={() => setActiveConvo(null)} className="md:hidden text-slate-400 hover:text-slate-600">
                   <ArrowLeft size={20} />
@@ -271,6 +404,7 @@ export default function MessagesPage() {
                 <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-sm text-red-600">{error}</div>
               )}
 
+              {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 thin-scrollbar">
                 {loadingMsgs && <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>}
                 {!loadingMsgs && messages.length === 0 && (
@@ -278,12 +412,26 @@ export default function MessagesPage() {
                 )}
                 {messages.map((m) => {
                   const isMe = m.sender_id === user?.id;
+                  const isOptimistic = m.id.startsWith("opt-");
                   return (
                     <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"} group`}>
-                      <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm relative ${isMe ? "bg-cyan-600 text-white rounded-br-sm shadow-sm" : "bg-white border border-slate-200/80 text-slate-700 rounded-bl-sm shadow-sm"}`}>
+                      <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm relative ${
+                        isMe
+                          ? "bg-cyan-600 text-white rounded-br-sm shadow-sm"
+                          : "bg-white border border-slate-200/80 text-slate-700 rounded-bl-sm shadow-sm"
+                      }`}>
                         {m.content}
-                        <p className={`text-[10px] mt-1 ${isMe ? "text-cyan-200" : "text-slate-400"}`}>{fmt(m.created_at)}</p>
-                        {isMe && (
+                        <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? "text-cyan-200" : "text-slate-400"}`}>
+                          <span className="text-[10px]">{fmtTime(m.created_at)}</span>
+                          {isMe && (
+                            isOptimistic
+                              ? <Check size={11} className="opacity-60" />
+                              : m.read
+                              ? <CheckCheck size={11} className="text-white" />
+                              : <Check size={11} className="opacity-80" />
+                          )}
+                        </div>
+                        {isMe && !isOptimistic && (
                           <button
                             onClick={() => deleteMessage(m.id)}
                             className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full hidden group-hover:flex items-center justify-center hover:bg-red-600 transition-colors"
@@ -298,6 +446,7 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Input */}
               <div className="bg-white border-t border-slate-200/60 px-4 py-3 flex items-center gap-2 shrink-0">
                 <input
                   type="text" value={input}
