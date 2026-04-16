@@ -527,6 +527,18 @@ export default function EmpleosPage() {
                     <div className="flex items-center gap-2">
                       {isCompany ? (
                         <>
+                          {/* Share to LinkedIn */}
+                          <button
+                            onClick={() => {
+                              const text  = encodeURIComponent(`Vacante: ${job.title}${job.specialty ? " — " + job.specialty : ""}${job.location ? " · " + job.location : ""}. ¡Aplica en ClassLink!`);
+                              const url   = encodeURIComponent(window.location.href);
+                              window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}&summary=${text}`, "_blank", "noopener,noreferrer,width=600,height=500");
+                            }}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#0077B5] bg-[#e8f4fb] hover:bg-[#0077B5] hover:text-white transition-all"
+                            title="Compartir en LinkedIn"
+                          >
+                            LinkedIn
+                          </button>
                           <button onClick={() => openEdit(job)} className="px-3 py-1.5 rounded-xl text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 transition-colors">Editar</button>
                           <button onClick={() => handleDelete(job.id)} className="px-3 py-1.5 rounded-xl text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors">Eliminar</button>
                         </>

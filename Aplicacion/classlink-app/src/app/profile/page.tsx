@@ -10,6 +10,7 @@ import { updateApplicationStatus, updateInternshipRequest, createInternshipReque
 import type { Vacancy, JobApplicant } from "@/lib/types";
 import { PortfolioGrid } from "./_components/PortfolioGrid";
 import { BadgesGrid }    from "./_components/BadgesGrid";
+import ReputationCard    from "@/components/profile/ReputationCard";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
   GraduationCap, Lock, Globe, Building2, Users, TrendingUp,
@@ -38,6 +39,8 @@ interface Profile {
   created_at: string;
   // Institutional backing (student)
   school_id: string | null;
+  // Reputation
+  reputation_score: number;
 }
 
 interface DbSchoolReport {
@@ -216,18 +219,25 @@ export default function ProfilePage() {
 
   const fetchBadges = useCallback(async () => {
     if (!user?.id) return;
-    const [{ data: userBadges }, { data: allBadges }] = await Promise.all([
+    const [{ data: userBadges }, { data: allBadges }, { data: svData }] = await Promise.all([
       supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
       supabase.from("badges").select("id, name, icon, description"),
+      supabase.from("skill_validations").select("skill_name").eq("student_id", user.id),
     ]);
     type BadgeRow  = { id: string; name: string; icon: string; description: string };
     type EarnedRow = { badge_id: string; earned_at: string | null };
-    const earned = new Map((userBadges ?? []).map((r: EarnedRow) => [r.badge_id, r.earned_at]));
+    const earned     = new Map((userBadges ?? []).map((r: EarnedRow) => [r.badge_id, r.earned_at]));
+    const skillNames = new Set((svData ?? []).map((r: any) => r.skill_name as string));
+    const VALIDATED_BADGE_NAMES = new Set(["Habilidad Técnica Validada", "Aval Institucional"]);
     setBadges(
       (allBadges ?? []).map((b: BadgeRow) => ({
         id: b.id, name: b.name, icon: b.icon, description: b.description,
         earned: earned.has(b.id),
         earned_at: earned.get(b.id) ?? null,
+        verified: earned.has(b.id) && VALIDATED_BADGE_NAMES.has(b.name),
+        skill_name: VALIDATED_BADGE_NAMES.has(b.name) && skillNames.size > 0
+          ? Array.from(skillNames).join(", ")
+          : undefined,
       }))
     );
   }, [user?.id]);
@@ -1272,6 +1282,15 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* ── Reputation Card (students) ── */}
+            {isStudent && (
+              <ReputationCard
+                studentId={profile.id}
+                studentName={profile.name}
+                reputationScore={profile.reputation_score ?? 0}
+              />
+            )}
+
             {isStudent && (
               <div className="bg-white rounded-2xl p-5 border border-slate-200/60">
                 <h3 className="text-sm font-bold mb-3 text-slate-700">Progreso XP</h3>
@@ -1619,7 +1638,7 @@ export default function ProfilePage() {
 
             {/* ── Insignias ── */}
             {tab === "Insignias" && isStudent && (
-              <BadgesGrid badges={badges} />
+              <BadgesGrid badges={badges} showShare profileName={profile.name} />
             )}
 
             {/* ── Vacantes (Empresa) ── */}

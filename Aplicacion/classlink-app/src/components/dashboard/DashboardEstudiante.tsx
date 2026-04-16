@@ -12,8 +12,9 @@ import {
   Flame, Star, Trophy, Zap, ArrowRight, BookOpen, Briefcase,
   Bell, MessageSquare, ChevronRight, Clock, Award, Lock, Loader2,
 } from "lucide-react";
-import Icon     from "@/components/ui/Icon";
-import StatCard from "@/components/ui/StatCard";
+import Icon                  from "@/components/ui/Icon";
+import StatCard              from "@/components/ui/StatCard";
+import TrustTriangleInsights from "@/components/dashboard/TrustTriangleInsights";
 
 interface DashProfile {
   name: string; avatar: string; level: number; xp: number;
@@ -340,6 +341,13 @@ export default function DashboardEstudiante() {
               </div>
             )}
           </div>
+
+          {/* ── Trust Triangle Insights ── */}
+          {user?.id && (
+            <div className="animate-fade-in-up stagger-3">
+              <TrustTriangleInsights role="Estudiante" studentId={user.id} />
+            </div>
+          )}
 
           {/* Quick actions */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/60 animate-fade-in-up stagger-3">

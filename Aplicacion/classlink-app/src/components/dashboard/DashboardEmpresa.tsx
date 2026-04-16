@@ -12,7 +12,8 @@ import {
   Briefcase, Users, TrendingUp, Eye, Search, ArrowRight, Building2,
   Bell, Clock, ChevronRight, MessageSquare, Star, Globe, Loader2,
 } from "lucide-react";
-import StatCard from "@/components/ui/StatCard";
+import StatCard              from "@/components/ui/StatCard";
+import TrustTriangleInsights from "@/components/dashboard/TrustTriangleInsights";
 
 interface DashProfile {
   name: string; avatar: string; industry: string;
@@ -258,6 +259,11 @@ export default function DashboardEmpresa() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ── Trust Triangle Insights ── */}
+          <div className="animate-fade-in-up stagger-4">
+            <TrustTriangleInsights role="Empresa" companyId={user?.id} />
           </div>
 
           {/* Quick actions */}
