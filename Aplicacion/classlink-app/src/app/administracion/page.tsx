@@ -76,6 +76,7 @@ export default function AdministracionPage() {
 
   // ── Graduate ──────────────────────────────────────────
   const [graduatingId,    setGraduatingId]    = useState<string | null>(null);
+  const [graduateErr,     setGraduateErr]     = useState<string | null>(null);
 
   // ── Per-student management panel ──────────────────────
   const [managingId,      setManagingId]      = useState<string | null>(null);
@@ -98,6 +99,10 @@ export default function AdministracionPage() {
   const [internshipReqs,  setInternshipReqs]  = useState<DbInternshipRequest[]>([]);
   const [reqsLoading,     setReqsLoading]     = useState(false);
   const [updatingReq,     setUpdatingReq]     = useState<string | null>(null);
+  const [reqError,        setReqError]        = useState<string | null>(null);
+
+  // ── Smart CSV importer result ─────────────────────────
+  const [importerOk,      setImporterOk]      = useState<string | null>(null);
 
   // ── Data fetching ──────────────────────────────────────
 
@@ -184,7 +189,7 @@ export default function AdministracionPage() {
     const result = await graduateStudent(studentId);
     setGraduatingId(null);
     if ("error" in result && result.error) {
-      alert(result.error);
+      setGraduateErr(result.error);
     } else {
       fetchStudents();
     }
@@ -207,7 +212,7 @@ export default function AdministracionPage() {
         .eq("student_id", s.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("user_skills")
         .select("skills!user_skills_skill_id_fkey(id, name)")
@@ -286,7 +291,7 @@ export default function AdministracionPage() {
     setUpdatingReq(reqId);
     const res = await updateInternshipRequest(reqId, status);
     setUpdatingReq(null);
-    if ("error" in res && res.error) { alert(res.error); return; }
+    if ("error" in res && res.error) { setReqError(res.error); return; }
     setInternshipReqs((prev) => prev.map((r) => r.id === reqId ? { ...r, status } : r));
   };
 
@@ -946,7 +951,8 @@ export default function AdministracionPage() {
           onSuccess={(count) => {
             setShowImporter(false);
             fetchStudents();
-            alert(`${count} estudiante(s) importados correctamente.`);
+            setImporterOk(`${count} estudiante(s) importados correctamente.`);
+            setTimeout(() => setImporterOk(null), 5000);
           }}
         />
       )}
