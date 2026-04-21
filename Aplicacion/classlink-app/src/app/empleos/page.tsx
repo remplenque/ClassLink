@@ -54,6 +54,9 @@ export default function EmpleosPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Desktop split-view: currently selected job for detail panel
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
   // Form state
   const [fTitle, setFTitle] = useState("");
   const [fDesc, setFDesc] = useState("");
@@ -273,9 +276,12 @@ export default function EmpleosPage() {
     setFollowingId(null);
   };
 
+  // The job shown in the desktop detail panel
+  const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? jobs[0] ?? null;
+
   return (
     <PageLayout>
-      <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full space-y-5">
+      <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-5">
         <div className="flex items-start justify-between animate-fade-in-up">
           <div>
             <p className="text-sm text-cyan-600 font-semibold mb-1">Oportunidades</p>
@@ -307,17 +313,33 @@ export default function EmpleosPage() {
           </div>
         )}
 
+        {/* ── Desktop split-view wrapper ──────────────────────────────────────── */}
+        {/* On desktop (xl+) and student/egresado view: left list + right detail */}
+        {/* On mobile or company view: plain list (original accordion layout)    */}
+        <div className={!isCompany && jobs.length > 0 ? "xl:grid xl:grid-cols-[1fr_1.5fr] xl:gap-5 xl:items-start" : ""}>
+
+        {/* ── Job list ── */}
         <div className="space-y-4">
           {jobs.map((job, i) => {
             const isExpanded = expandedId === job.id;
+            // On desktop non-company: highlight selected card instead of expanding inline
+            const isSelectedDesktop = !isCompany && job.id === (selectedJobId ?? jobs[0]?.id);
             const hasApplied = appliedIds.has(job.id);
             const jobApplicants = applicantMap[job.id] ?? [];
             const acceptedCount = jobApplicants.filter((a) => a.status === "accepted" || a.status === "hired").length;
             const maxReached = job.max_candidates != null && acceptedCount >= job.max_candidates;
 
             return (
-              <article key={job.id}
-                className={`bg-white rounded-2xl border border-slate-200/60 overflow-hidden hover:shadow-md transition-all animate-fade-in-up stagger-${Math.min(i + 1, 6)}`}
+              <article
+                key={job.id}
+                onClick={() => { if (!isCompany) setSelectedJobId(job.id); }}
+                className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all animate-fade-in-up stagger-${Math.min(i + 1, 6)} ${
+                  !isCompany ? "cursor-pointer" : ""
+                } ${
+                  isSelectedDesktop
+                    ? "border-cyan-400 shadow-md xl:border-2"
+                    : "border-slate-200/60"
+                }`}
               >
                 <div className="p-5">
                   <div className="flex items-start gap-3">
@@ -359,9 +381,9 @@ export default function EmpleosPage() {
                     </div>
                   </div>
 
-                  {/* Description (non-company, expanded) */}
+                  {/* Description (non-company, expanded on mobile only) */}
                   {isExpanded && !isCompany && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 animate-fade-in-up">
+                    <div className="xl:hidden mt-4 pt-4 border-t border-slate-100 animate-fade-in-up">
                       <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{job.description}</p>
                     </div>
                   )}
@@ -510,9 +532,9 @@ export default function EmpleosPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                  <div className={`flex items-center justify-between mt-4 pt-3 border-t border-slate-100 ${!isCompany ? "xl:hidden" : ""}`}>
                     <button
-                      onClick={() => isCompany ? fetchApplicants(job.id) : setExpandedId(isExpanded ? null : job.id)}
+                      onClick={(e) => { e.stopPropagation(); isCompany ? fetchApplicants(job.id) : setExpandedId(isExpanded ? null : job.id); }}
                       className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 font-medium"
                     >
                       {loadingApplicants === job.id
@@ -584,6 +606,102 @@ export default function EmpleosPage() {
             );
           })}
         </div>
+
+        {/* ── Desktop detail panel (student/egresado only) ── */}
+        {!isCompany && selectedJob && (
+          <div className="hidden xl:block">
+            <div className="sticky top-20 bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden animate-fade-in-up">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100">
+                <div className="flex gap-4 items-start">
+                  {selectedJob.company?.avatar ? (
+                    <img src={selectedJob.company.avatar} alt={selectedJob.company.name} className="w-14 h-14 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                      <Briefcase size={22} className="text-violet-600" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-cyan-600 mb-1">{selectedJob.company?.name ?? "Empresa"}</p>
+                    <h2 className="text-xl font-extrabold tracking-tight leading-snug">{selectedJob.title}</h2>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedJob.location && (
+                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                          <MapPin size={11} />{selectedJob.location}
+                        </span>
+                      )}
+                      <span className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-lg font-semibold capitalize">
+                        {selectedJob.type}
+                      </span>
+                      {selectedJob.specialty && (
+                        <span className="text-xs bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-lg font-semibold">
+                          {selectedJob.specialty}
+                        </span>
+                      )}
+                      {/* Smart match score */}
+                      {(mySkills.length > 0 || mySpecialty) && (() => {
+                        const score = computeMatchScore(mySkills, mySpecialty, {
+                          id: selectedJob.id, title: selectedJob.title,
+                          description: selectedJob.description, specialty: selectedJob.specialty ?? "",
+                          requirements: "",
+                        });
+                        const color = getMatchColor(score);
+                        return (
+                          <span className={`flex items-center gap-1 text-${color}-600 bg-${color}-50 border border-${color}-100 px-2 py-0.5 rounded-lg text-xs font-bold`}>
+                            <Sparkles size={10} /> {score}% match
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="px-6 py-4 flex gap-3 border-b border-slate-100">
+                <button
+                  onClick={() => handleApply(selectedJob.id)}
+                  disabled={appliedIds.has(selectedJob.id) || applying === selectedJob.id || !selectedJob.active}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all btn-press disabled:opacity-50 ${
+                    appliedIds.has(selectedJob.id) ? "bg-emerald-500" : "bg-cyan-600 hover:bg-cyan-700"
+                  }`}
+                >
+                  {applying === selectedJob.id ? <Loader2 size={14} className="animate-spin" /> :
+                   appliedIds.has(selectedJob.id) ? <><CheckCircle size={14} /> Postulado</> :
+                   <><Send size={14} /> Postularse</>}
+                </button>
+                {selectedJob.company_id && (
+                  <button
+                    onClick={() => toggleFollow(selectedJob.company_id)}
+                    disabled={followingId === selectedJob.company_id}
+                    className={`px-3.5 py-2.5 rounded-xl text-sm font-semibold border transition-all btn-press ${
+                      followedIds.has(selectedJob.company_id)
+                        ? "bg-slate-100 text-slate-600 border-slate-200"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-600"
+                    }`}
+                  >
+                    {followedIds.has(selectedJob.company_id) ? <UserCheck size={16} /> : <UserPlus size={16} />}
+                  </button>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto thin-scrollbar">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Sobre la oportunidad</p>
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  {selectedJob.description || "Sin descripción disponible."}
+                </p>
+                {selectedJob.created_at && (
+                  <p className="text-xs text-slate-400 mt-4">
+                    Publicado el {new Date(selectedJob.created_at).toLocaleDateString("es-CR")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        </div>{/* end split-view wrapper */}
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={editJob ? "Editar Vacante" : "Nueva Vacante"}>

@@ -15,10 +15,13 @@ import {
 import Icon                  from "@/components/ui/Icon";
 import StatCard              from "@/components/ui/StatCard";
 import TrustTriangleInsights from "@/components/dashboard/TrustTriangleInsights";
+import TrustTriangle         from "@/components/ui/TrustTriangle";
 
 interface DashProfile {
   name: string; avatar: string; level: number; xp: number;
   streak: number; gpa: number | null; specialty: string;
+  reputation_score: number;
+  attendance: number | null;
 }
 
 interface DashBadge {
@@ -43,7 +46,7 @@ export default function DashboardEstudiante() {
     if (!user?.id) return;
 
     Promise.all([
-      supabase.from("profiles").select("name, avatar, level, xp, streak, gpa, specialty").eq("id", user.id).single(),
+      supabase.from("profiles").select("name, avatar, level, xp, streak, gpa, specialty, reputation_score, attendance").eq("id", user.id).single(),
       supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
       supabase.from("badges").select("id, name, icon, description"),
       supabase
@@ -104,6 +107,13 @@ export default function DashboardEstudiante() {
   const streak       = profile.streak ?? 0;
   const recentNotifs = notifications.slice(0, 4);
   const displayName  = user?.name ?? profile.name;
+
+  // Derive trust triangle scores from available data
+  const trustData = {
+    academica:   Math.min(100, Math.round((profile.gpa ?? 0) * 10)),
+    profesional: Math.min(100, Math.round((profile.reputation_score ?? 0) / 5)),
+    social:      Math.min(100, earnedBadges.length * 12 + (profile.streak ?? 0) * 2),
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6">
@@ -340,6 +350,13 @@ export default function DashboardEstudiante() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ── Trust Triangle Visual ── */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/60 animate-fade-in-up stagger-3 flex flex-col items-center">
+            <h3 className="font-bold text-sm mb-1 self-start">Trust Triangle</h3>
+            <p className="text-[11px] text-slate-400 mb-4 self-start">Tu reputación en 3 dimensiones</p>
+            <TrustTriangle data={trustData} size={200} />
           </div>
 
           {/* ── Trust Triangle Insights ── */}
