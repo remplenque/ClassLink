@@ -1,26 +1,8 @@
 "use client";
 // ──────────────────────────────────────────────────────────
 // ClassLink – Global Role Context
-// ──────────────────────────────────────────────────────────
-// Provides a React Context that makes the current simulated
-// role available throughout the entire component tree.
-//
-// What it manages:
-//  1. role      – the currently active user role
-//  2. setRole   – function to switch to a different role
-//  3. notifications – list of notifications filtered to the active role
-//  4. unreadCount   – derived count of unread notifications
-//  5. markRead      – marks a single notification as read
-//  6. markAllRead   – marks all notifications as read
-//
-// Architecture note:
-//  "Read" state for notifications is stored locally in a Set<string>
-//  of IDs rather than mutating the NOTIFICATIONS array. This keeps
-//  the mock data immutable and avoids bugs when switching roles.
-//
-// Usage:
-//  1. Wrap the app root in <RoleProvider> (done in app/layout.tsx)
-//  2. Call `const { role, setRole, ... } = useRole()` in any component
+// Role is derived exclusively from the authenticated Supabase
+// profile row — never from mutable client state.
 // ──────────────────────────────────────────────────────────
 
 import React, {
@@ -32,96 +14,118 @@ import React, {
   useMemo,
 } from "react";
 import type { Role, AppNotification } from "./types";
-import { NOTIFICATIONS } from "./data";
 import { useAuth } from "./auth-context";
-
-// ── Context Shape ─────────────────────────────────────────
+import { supabase } from "./supabase";
 
 interface RoleContextValue {
-  /** Currently active role */
   role: Role;
-  /** Switch to a different role — updates the whole UI */
-  setRole: (r: Role) => void;
-  /** Notifications visible to the current role (pre-filtered) */
+  // setRole intentionally omitted — role comes from the DB profile only
   notifications: AppNotification[];
-  /** Number of notifications the user hasn't read yet */
   unreadCount: number;
-  /** Mark a single notification as read by its ID */
   markRead: (id: string) => void;
-  /** Mark every notification as read at once */
   markAllRead: () => void;
 }
 
-// ── Context Instance ──────────────────────────────────────
-
-// Initialised to undefined so the useRole hook can detect misuse
-// (calling it outside of a <RoleProvider>).
 const RoleContext = createContext<RoleContextValue | undefined>(undefined);
-
-// ── Provider Component ────────────────────────────────────
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const role: Role = user?.role ?? "Estudiante";
 
-  // Role is driven by the authenticated user's account type
-  const [role, setRole] = useState<Role>(user?.role ?? "Estudiante");
-
-  // Keep role in sync whenever the logged-in user changes (login / logout)
-  useEffect(() => {
-    if (user) setRole(user.role);
-  }, [user]);
-
-  // Set of notification IDs that the user has read in this session.
-  // Using a Set for O(1) membership checks.
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  /**
-   * Filter the global NOTIFICATIONS list to only those relevant to the
-   * current role. Recalculated whenever the role changes.
-   */
-  const notifications = useMemo(
-    () => NOTIFICATIONS.filter((n) => n.forRoles.includes(role)),
-    [role]
-  );
+  // Fetch notifications from Supabase for the current user
+  useEffect(() => {
+    if (!user?.id) { setNotifications([]); return; }
 
-  /**
-   * Count notifications that are neither server-marked as read
-   * nor locally marked as read by the user in this session.
-   */
+    supabase
+      .from("notifications")
+      .select("id, title, body, read, created_at, type")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return;
+        setNotifications(
+          data.map((n) => ({
+            id:          n.id,
+            title:       n.title,
+            description: n.body ?? "",
+            time:        new Date(n.created_at).toLocaleString("es-CR"),
+            read:        n.read ?? false,
+            forRoles:    [role], // these are already user-specific
+            type:        n.type,
+          }))
+        );
+      });
+
+    // Real-time new notifications
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const n = payload.new as {
+          id: string; title: string; body: string;
+          read: boolean; created_at: string; type: string;
+        };
+        setNotifications((prev) => [{
+          id:          n.id,
+          title:       n.title,
+          description: n.body ?? "",
+          time:        new Date(n.created_at).toLocaleString("es-CR"),
+          read:        false,
+          forRoles:    [role],
+          type:        n.type,
+        }, ...prev]);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read && !readIds.has(n.id)).length,
     [notifications, readIds]
   );
 
-  /** Add a single ID to the local read set */
-  const markRead = useCallback((id: string) => {
+  const markRead = useCallback(async (id: string) => {
     setReadIds((prev) => new Set(prev).add(id));
-  }, []);
+    if (user?.id) {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", id)
+        .eq("user_id", user.id);
+    }
+  }, [user?.id]);
 
-  /** Add every notification ID to the local read set */
-  const markAllRead = useCallback(() => {
+  const markAllRead = useCallback(async () => {
+    const ids = notifications.map((n) => n.id);
     setReadIds((prev) => {
       const next = new Set(prev);
-      NOTIFICATIONS.forEach((n) => next.add(n.id));
+      ids.forEach((id) => next.add(id));
       return next;
     });
-  }, []);
+    if (user?.id) {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id);
+    }
+  }, [notifications, user?.id]);
 
   return (
-    <RoleContext.Provider
-      value={{ role, setRole, notifications, unreadCount, markRead, markAllRead }}
-    >
+    <RoleContext.Provider value={{ role, notifications, unreadCount, markRead, markAllRead }}>
       {children}
     </RoleContext.Provider>
   );
 }
 
-// ── Consumer Hook ─────────────────────────────────────────
-
-/**
- * Access role context in any client component.
- * Throws a clear error if called outside of <RoleProvider>.
- */
 export function useRole(): RoleContextValue {
   const ctx = useContext(RoleContext);
   if (!ctx) throw new Error("useRole must be used within RoleProvider");

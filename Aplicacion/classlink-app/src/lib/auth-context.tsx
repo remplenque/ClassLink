@@ -26,11 +26,12 @@ import type { Role } from "./types";
 // ── Shapes ────────────────────────────────────────────────
 
 export interface AuthUser {
-  id:     string;
-  name:   string;
-  email:  string;
-  role:   Role;
-  avatar: string;
+  id:                  string;
+  name:                string;
+  email:               string;
+  role:                Role;
+  avatar:              string;
+  mustChangePassword:  boolean;
 }
 
 interface AuthContextValue {
@@ -63,19 +64,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * and store it in React state.
    */
   const loadProfile = useCallback(async (supabaseUserId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, name, email, role, avatar")
-      .eq("id", supabaseUserId)
-      .single();
+    const [{ data }, { data: { session } }] = await Promise.all([
+      supabase.from("profiles").select("id, name, email, role, avatar").eq("id", supabaseUserId).single(),
+      supabase.auth.getSession(),
+    ]);
 
     if (data) {
       setUser({
-        id:     data.id,
-        name:   data.name,
-        email:  data.email,
-        role:   data.role as Role,
-        avatar: data.avatar ?? "",
+        id:                 data.id,
+        name:               data.name,
+        email:              data.email,
+        role:               data.role as Role,
+        avatar:             data.avatar ?? "",
+        mustChangePassword: session?.user.app_metadata?.must_change_password === true,
       });
     }
   }, []);

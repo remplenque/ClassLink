@@ -13,6 +13,9 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // Enable dark mode via the `dark` class on <html>
+  darkMode: "class",
+
   // ── Content Paths ────────────────────────────────────
   // Tailwind scans these files to build its purge list.
   // Any class not found here will be stripped from the bundle.
