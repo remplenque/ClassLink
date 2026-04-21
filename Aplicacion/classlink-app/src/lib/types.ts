@@ -95,7 +95,7 @@ export interface JobApplicant {
   avatar:     string;
   specialty:  string;
   matchScore: number;
-  status:     "pending" | "accepted" | "rejected";
+  status:     "pending" | "reviewing" | "interviewing" | "accepted" | "rejected" | "hired";
 }
 
 /**
