@@ -108,7 +108,7 @@ export default function ProfilePage() {
   // Company vacancies (fetched from DB)
   const [localVacancies,   setLocalVacancies]   = useState<Vacancy[]>([]);
   const [expandedVacancy,  setExpandedVacancy]  = useState<string | null>(null);
-  const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"accepted"|"rejected">>({});
+  const [applicantStatuses,setApplicantStatuses]= useState<Record<string, "pending"|"reviewing"|"interviewing"|"accepted"|"rejected"|"hired">>({});
   const [applicantStudentIds,setApplicantStudentIds]= useState<Record<string, string>>({});
   const [updatingApp,        setUpdatingApp]        = useState<string|null>(null);
   const [addVacancyOpen,   setAddVacancyOpen]   = useState(false);
@@ -306,7 +306,7 @@ export default function ProfilePage() {
     });
     setLocalVacancies(mapped);
     // Sync applicant statuses + student IDs
-    const statuses: Record<string, "pending"|"accepted"|"rejected"> = {};
+    const statuses: Record<string, "pending"|"reviewing"|"interviewing"|"accepted"|"rejected"|"hired"> = {};
     const studentIds: Record<string, string> = {};
     mapped.forEach((v) => v.applicants.forEach((a) => {
       statuses[a.id] = a.status;
