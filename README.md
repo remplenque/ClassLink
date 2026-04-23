@@ -51,7 +51,7 @@ El proyecto está construido sobre una arquitectura moderna, escalable y rápida
 
 **Control de Versiones:** Git / GitHub
 
-## La aplicación estará disponible en: [COLOCAR LINK]
+## La aplicación estará disponible en: https://class-link-six.vercel.app/muro
 
 ## 👥 Equipo de Desarrollo
 
