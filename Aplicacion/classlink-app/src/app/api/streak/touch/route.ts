@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 // returns the updated streak value. Idempotent within the same day.
 export async function POST() {
   const cookieStore = await cookies();
-  const supabaseServer = createServerSupabaseClient(cookieStore as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const supabaseServer = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
   if (authError || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -58,7 +58,7 @@ export async function proposeInterview(args: ProposeArgs) {
   }
 
   const cookieStore = await cookies();
-  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user: caller } } = await supabase.auth.getUser();
   if (!caller) return { error: "No autenticado." };
 
@@ -70,8 +70,7 @@ export async function proposeInterview(args: ProposeArgs) {
     .single();
 
   if (!app) return { error: "Postulación no encontrada." };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jobPosting: any = app.job_postings;
+  const jobPosting = app.job_postings as { company_id?: string; title?: string } | null;
   if (jobPosting?.company_id !== caller.id) {
     return { error: "Acceso denegado." };
   }
@@ -135,7 +134,7 @@ export async function respondInterview(interviewId: string, response: "accepted"
   if (!interviewId) return { error: "ID inválido." };
 
   const cookieStore = await cookies();
-  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user: caller } } = await supabase.auth.getUser();
   if (!caller) return { error: "No autenticado." };
 
@@ -174,7 +173,7 @@ export async function cancelInterview(interviewId: string) {
   if (!interviewId) return { error: "ID inválido." };
 
   const cookieStore = await cookies();
-  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
   const { data: { user: caller } } = await supabase.auth.getUser();
   if (!caller) return { error: "No autenticado." };
 
