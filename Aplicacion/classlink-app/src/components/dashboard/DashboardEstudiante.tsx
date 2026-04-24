@@ -1,27 +1,35 @@
 "use client";
 // ──────────────────────────────────────────────────────────
-// DashboardEstudiante – Student home dashboard (live data)
+// DashboardEstudiante – Student home dashboard (live data + gamification)
 // ──────────────────────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRole } from "@/lib/role-context";
 import { supabase } from "@/lib/supabase";
 import {
-  Flame, Star, Trophy, Zap, ArrowRight, BookOpen, Briefcase,
-  Bell, MessageSquare, ChevronRight, Clock, Award, Lock, Loader2,
+  Star, Trophy, Zap, ArrowRight, BookOpen, Briefcase,
+  Bell, MessageSquare, ChevronRight, Clock, Lock, Flame,
 } from "lucide-react";
 import Icon                  from "@/components/ui/Icon";
 import StatCard              from "@/components/ui/StatCard";
 import TrustTriangleInsights from "@/components/dashboard/TrustTriangleInsights";
 import TrustTriangle         from "@/components/ui/TrustTriangle";
+import StreakFlame           from "@/components/gamification/StreakFlame";
+import TierBadge, { tierFromXp, nextTierInfo, type XpTier } from "@/components/gamification/TierBadge";
+import DailyQuestsCard       from "@/components/gamification/DailyQuestsCard";
+import LevelUpModal          from "@/components/gamification/LevelUpModal";
+import TechRadarCard         from "@/components/radar/TechRadarCard";
 
 interface DashProfile {
   name: string; avatar: string; level: number; xp: number;
   streak: number; gpa: number | null; specialty: string;
   reputation_score: number;
   attendance: number | null;
+  xp_tier: XpTier;
+  longest_streak: number;
+  last_active_date: string | null;
 }
 
 interface DashBadge {
@@ -41,55 +49,121 @@ export default function DashboardEstudiante() {
   const [badges,   setBadges]   = useState<DashBadge[]>([]);
   const [posts,    setPosts]    = useState<DashPost[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [celebration, setCelebration] =
+    useState<{ kind: "level" | "tier"; title: string; subtitle?: string; level?: number; tier?: XpTier } | null>(null);
+
+  // Track previous level/tier so we can detect a level-up between refetches
+  const prevLevelRef = useRef<number | null>(null);
+  const prevTierRef  = useRef<XpTier | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    Promise.all([
-      supabase.from("profiles").select("name, avatar, level, xp, streak, gpa, specialty, reputation_score, attendance").eq("id", user.id).single(),
-      supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
-      supabase.from("badges").select("id, name, icon, description"),
-      supabase
-        .from("posts")
-        .select("id, title, description, content, created_at, profiles!author_id(name, avatar)")
-        .order("created_at", { ascending: false })
-        .limit(3),
-    ]).then(([pRes, ubRes, bRes, postsRes]) => {
-      if (pRes.data) setProfile(pRes.data as DashProfile);
+    // Fire-and-forget streak touch on mount (idempotent within the day)
+    fetch("/api/streak/touch", { method: "POST" }).catch(() => {});
+
+    const load = async () => {
+      const [pRes, ubRes, bRes, postsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("name, avatar, level, xp, streak, gpa, specialty, reputation_score, attendance, xp_tier, longest_streak, last_active_date")
+          .eq("id", user.id)
+          .single(),
+        supabase.from("user_badges").select("badge_id, earned_at").eq("user_id", user.id),
+        supabase.from("badges").select("id, name, icon, description"),
+        supabase
+          .from("posts")
+          .select("id, title, description, content, created_at, profiles!author_id(name, avatar)")
+          .order("created_at", { ascending: false })
+          .limit(3),
+      ]);
+
+      if (pRes.data) {
+        const p = pRes.data as Partial<DashProfile>;
+        const next: DashProfile = {
+          name:             p.name ?? "",
+          avatar:           p.avatar ?? "",
+          level:            p.level ?? 1,
+          xp:               p.xp ?? 0,
+          streak:           p.streak ?? 0,
+          gpa:              p.gpa ?? null,
+          specialty:        p.specialty ?? "",
+          reputation_score: p.reputation_score ?? 0,
+          attendance:       p.attendance ?? null,
+          xp_tier:          (p.xp_tier as XpTier) ?? tierFromXp(p.xp ?? 0),
+          longest_streak:   p.longest_streak ?? 0,
+          last_active_date: p.last_active_date ?? null,
+        };
+        // Level-up detection
+        if (prevLevelRef.current != null && next.level > prevLevelRef.current) {
+          setCelebration({
+            kind: "level",
+            title: `¡Nivel ${next.level}!`,
+            subtitle: "Sigue acumulando XP completando misiones diarias.",
+            level: next.level,
+          });
+        }
+        // Tier-up detection
+        if (prevTierRef.current != null && next.xp_tier !== prevTierRef.current) {
+          setCelebration({
+            kind: "tier",
+            title: `¡Nuevo rango: ${next.xp_tier}!`,
+            subtitle: "Tu trayectoria sube al siguiente nivel.",
+            tier: next.xp_tier,
+          });
+        }
+        prevLevelRef.current = next.level;
+        prevTierRef.current  = next.xp_tier;
+        setProfile(next);
+      }
 
       const earnedMap = new Map(
-        (ubRes.data ?? []).map((r: any) => [r.badge_id, r.earned_at])
+        (ubRes.data ?? []).map((r) => [r.badge_id as string, r.earned_at as string | null])
       );
       setBadges(
-        (bRes.data ?? []).map((b: any) => ({
-          id: b.id, name: b.name, icon: b.icon,
-          earned: earnedMap.has(b.id),
-          earned_at: earnedMap.get(b.id) ?? null,
+        (bRes.data ?? []).map((b) => ({
+          id: b.id as string,
+          name: b.name as string,
+          icon: b.icon as string,
+          earned: earnedMap.has(b.id as string),
+          earned_at: earnedMap.get(b.id as string) ?? null,
         }))
       );
 
+      interface PostRow { id: string; title: string; description: string | null; content: string | null; created_at: string | null; profiles: { name: string; avatar: string } | null }
       setPosts(
-        (postsRes.data ?? []).map((p: any) => ({
+        ((postsRes.data ?? []) as unknown as PostRow[]).map((p) => ({
           id: p.id,
           title: p.title,
           description: p.description ?? "",
           content: p.content ?? "",
-          authorName:   (p.profiles as any)?.name   ?? "Usuario",
-          authorAvatar: (p.profiles as any)?.avatar ?? "",
+          authorName:   p.profiles?.name   ?? "Usuario",
+          authorAvatar: p.profiles?.avatar ?? "",
           createdAt:    (p.created_at ?? "").split("T")[0],
         }))
       );
 
       setLoading(false);
-    }).catch(() => setLoading(false));
+    };
+
+    load();
+
+    // Refetch profile on xp_events INSERT so level/tier changes trigger celebration
+    const channel = supabase
+      .channel(`xp:${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "xp_events",
+        filter: `user_id=eq.${user.id}`,
+      }, () => { load(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <Loader2 size={28} className="animate-spin text-cyan-400" />
-      </div>
-    );
+    return <StudentDashboardSkeleton />;
   }
 
   if (!profile) {
@@ -101,14 +175,12 @@ export default function DashboardEstudiante() {
   }
 
   const earnedBadges = badges.filter((b) => b.earned);
-  const xp           = profile.xp    ?? 0;
-  const xpMax        = 500; // XP per level
-  const xpPercent    = Math.min(100, Math.round(((xp % xpMax) / xpMax) * 100));
+  const tier         = profile.xp_tier;
+  const tierInfo     = nextTierInfo(profile.xp);
   const streak       = profile.streak ?? 0;
   const recentNotifs = notifications.slice(0, 4);
   const displayName  = user?.name ?? profile.name;
 
-  // Derive trust triangle scores from available data
   const trustData = {
     academica:   Math.min(100, Math.round((profile.gpa ?? 0) * 10)),
     profesional: Math.min(100, Math.round((profile.reputation_score ?? 0) / 5)),
@@ -125,6 +197,7 @@ export default function DashboardEstudiante() {
         <div className="relative flex flex-col md:flex-row md:items-center gap-5">
           {/* Avatar */}
           {profile.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatar}
               alt={displayName}
@@ -143,19 +216,33 @@ export default function DashboardEstudiante() {
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               {displayName.split(" ")[0]}
             </h1>
-            <p className="text-white/70 text-sm mt-1">
-              Nivel {profile.level ?? 1}
-              {profile.specialty ? ` — ${profile.specialty}` : ""}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <span className="text-white/85 text-sm">
+                Nivel {profile.level ?? 1}
+                {profile.specialty ? ` — ${profile.specialty}` : ""}
+              </span>
+              <TierBadge tier={tier} size="sm" />
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="text-center">
-              <p className="text-3xl font-extrabold">{streak}</p>
-              <p className="text-xs text-cyan-100">días de racha</p>
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-2.5">
+              <StreakFlame
+                streak={streak}
+                lastActive={profile.last_active_date}
+                size={32}
+                showLabel={false}
+                className=""
+              />
+              <div className="text-left">
+                <p className="text-2xl font-extrabold leading-none">{streak}</p>
+                <p className="text-[10px] text-cyan-100 uppercase tracking-wide font-semibold">
+                  racha
+                </p>
+              </div>
             </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
+            <div className="w-px h-10 bg-white/20 hidden md:block" />
+            <div className="text-center hidden md:block">
               <p className="text-3xl font-extrabold">{earnedBadges.length}</p>
               <p className="text-xs text-cyan-100">insignias</p>
             </div>
@@ -173,8 +260,8 @@ export default function DashboardEstudiante() {
           delay={1}
         />
         <StatCard
-          label="Racha Diaria"
-          value={`${streak} días`}
+          label="Racha"
+          value={`${streak} ${streak === 1 ? "día" : "días"}`}
           icon={<Flame size={20} className="text-amber-500" />}
           bg="bg-amber-50"
           delay={2}
@@ -187,10 +274,10 @@ export default function DashboardEstudiante() {
           delay={3}
         />
         <StatCard
-          label="Promedio"
-          value={profile.gpa != null ? profile.gpa.toFixed(1) : "—"}
-          icon={<Star size={20} className="text-violet-500" />}
-          bg="bg-violet-50"
+          label="Mejor racha"
+          value={profile.longest_streak}
+          icon={<Flame size={20} className="text-rose-500" />}
+          bg="bg-rose-50"
           delay={4}
         />
       </div>
@@ -201,34 +288,37 @@ export default function DashboardEstudiante() {
         {/* Left column */}
         <div className="lg:col-span-2 space-y-5">
 
-          {/* XP Progress */}
+          {/* Daily quests */}
+          {user?.id && <DailyQuestsCard userId={user.id} />}
+
+          {/* Tier progress */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/60 animate-fade-in-up stagger-2">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Zap size={18} className="text-cyan-600" />
                 <span className="font-bold">Puntos de Experiencia</span>
               </div>
-              <span className="text-sm font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-full">
-                {xpPercent}%
-              </span>
+              <TierBadge tier={tier} size="md" />
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden mb-3">
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden mb-2">
               <div
                 className="h-full rounded-full primary-gradient transition-all duration-1000 ease-out"
-                style={{ width: `${xpPercent}%` }}
+                style={{ width: `${tierInfo.pct}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-slate-500">
-              <span>{xp.toLocaleString()} XP</span>
+              <span>{profile.xp.toLocaleString()} XP</span>
               <span>
-                Faltan{" "}
-                <span className="font-bold text-cyan-600">
-                  {Math.max(0, xpMax - (xp % xpMax)).toLocaleString()} XP
-                </span>{" "}
-                para Nivel {(profile.level ?? 1) + 1}
+                {tierInfo.next
+                  ? <>Faltan <span className="font-bold text-cyan-600">{tierInfo.remaining.toLocaleString()} XP</span> para <span className="font-bold">{tierInfo.next}</span></>
+                  : "¡Rango máximo alcanzado!"
+                }
               </span>
             </div>
           </div>
+
+          {/* Tech radar (novel feature) */}
+          {user?.id && <TechRadarCard userId={user.id} specialty={profile.specialty} />}
 
           {/* Badges grid */}
           {badges.length > 0 && (
@@ -243,7 +333,7 @@ export default function DashboardEstudiante() {
                 </Link>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {badges.map((badge, i) => (
+                {badges.slice(0, 8).map((badge, i) => (
                   <div
                     key={badge.id}
                     className={`
@@ -294,6 +384,7 @@ export default function DashboardEstudiante() {
                     className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50/80 transition-colors"
                   >
                     {post.authorAvatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.authorAvatar} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
                     ) : (
                       <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
@@ -393,6 +484,41 @@ export default function DashboardEstudiante() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {celebration && (
+        <LevelUpModal
+          open
+          onClose={() => setCelebration(null)}
+          kind={celebration.kind}
+          title={celebration.title}
+          subtitle={celebration.subtitle}
+          level={celebration.level}
+          tier={celebration.tier}
+        />
+      )}
+    </div>
+  );
+}
+
+function StudentDashboardSkeleton() {
+  return (
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6 animate-fade-in">
+      <div className="skeleton rounded-2xl h-36" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton rounded-2xl h-24" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="skeleton rounded-2xl h-64" />
+          <div className="skeleton rounded-2xl h-48" />
+        </div>
+        <div className="space-y-4">
+          <div className="skeleton rounded-2xl h-40" />
+          <div className="skeleton rounded-2xl h-56" />
         </div>
       </div>
     </div>

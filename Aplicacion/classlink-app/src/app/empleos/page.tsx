@@ -9,11 +9,16 @@ import { jobPostingSchema } from "@/lib/schemas";
 import { updateApplicationStatusSA, type AtsStatus } from "@/app/actions/company";
 import { TP_SPECIALTIES } from "@/lib/specialties";
 import {
-  Briefcase, MapPin, Plus, Loader2, ChevronDown, X, Send, CheckCircle,
+  Briefcase, MapPin, Plus, Loader2, ChevronDown, Send, CheckCircle,
   Users, ArrowUp, ArrowDown, Sparkles, UserPlus, UserCheck,
-  BarChart2, TrendingUp, Award, Eye,
+  BarChart2, TrendingUp, Award, Eye, CalendarClock, ListChecks,
 } from "lucide-react";
 import { computeMatchScore, getMatchLabel, getMatchColor } from "@/lib/utils/matching";
+import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useQuestProgress } from "@/lib/hooks/useQuestProgress";
+import ProposeInterviewModal from "@/components/ats/ProposeInterviewModal";
+import ApplicationTimeline from "@/components/ats/ApplicationTimeline";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -75,6 +80,9 @@ export default function EmpleosPage() {
   const { user } = useAuth();
   const { role } = useRole();
   const isCompany = role === "Empresa";
+  const { toast }          = useToast();
+  const confirmFn          = useConfirm();
+  const trackQuest         = useQuestProgress();
 
   const [jobs,          setJobs]          = useState<JobPosting[]>([]);
   const [loading,       setLoading]       = useState(true);
@@ -90,6 +98,18 @@ export default function EmpleosPage() {
   const [saveError,     setSaveError]     = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [companyStats,  setCompanyStats]  = useState<CompanyStats | null>(null);
+
+  // Interview proposal state (company view)
+  const [proposeFor, setProposeFor] = useState<{
+    applicationId: string; studentName: string; jobTitle: string;
+  } | null>(null);
+
+  // Student view: show applications with timelines
+  const [showApplications, setShowApplications] = useState(false);
+  const [myApplications,   setMyApplications]   = useState<{
+    id: string; job_id: string; status: AtsStatus; job_title: string; company_name: string; created_at: string;
+  }[]>([]);
+  const [loadingApps, setLoadingApps] = useState(false);
 
   // Form state
   const [fTitle,         setFTitle]         = useState("");
@@ -159,8 +179,8 @@ export default function EmpleosPage() {
       supabase.from("profiles").select("specialty").eq("id", user.id).single(),
       supabase.from("user_skills").select("skills(name)").eq("user_id", user.id),
     ]);
-    if (prof) setMySpecialty((prof as any).specialty ?? "");
-    if (skillsData) setMySkills((skillsData as any[]).map((s) => s.skills?.name ?? ""));
+    if (prof) setMySpecialty((prof as { specialty?: string | null }).specialty ?? "");
+    if (skillsData) setMySkills((skillsData as { skills?: { name?: string } | null }[]).map((s) => s.skills?.name ?? ""));
   }, [user?.id, isCompany]);
 
   const fetchCompanyStats = useCallback(async () => {
@@ -247,8 +267,8 @@ export default function EmpleosPage() {
         .in("user_id", applicantIds);
 
       for (const row of skillsRows ?? []) {
-        const uid  = (row as any).user_id;
-        const name = (row as any).skills?.name ?? "";
+        const uid  = (row as { user_id: string; skills?: { name?: string } | null }).user_id;
+        const name = (row as { skills?: { name?: string } | null }).skills?.name ?? "";
         if (name) {
           skillsByUser[uid] = skillsByUser[uid] ?? [];
           skillsByUser[uid].push(name);
@@ -293,11 +313,15 @@ export default function EmpleosPage() {
     setUpdatingApp(appId);
     const res = await updateApplicationStatusSA(appId, jobId, newStatus);
     setUpdatingApp(null);
-    if ("error" in res && res.error) { alert(res.error); return; }
+    if ("error" in res && res.error) {
+      toast({ type: "error", title: "Error al actualizar estado", description: res.error });
+      return;
+    }
     setApplicantMap((prev) => ({
       ...prev,
       [jobId]: (prev[jobId] ?? []).map((a) => a.id === appId ? { ...a, status: newStatus } : a),
     }));
+    toast({ type: "success", title: "Estado actualizado" });
   };
 
   const movePriority = async (jobId: string, appId: string, direction: "up" | "down") => {
@@ -349,11 +373,39 @@ export default function EmpleosPage() {
   };
 
   const handleDelete = async (jobId: string) => {
-    if (!confirm("¿Eliminar esta vacante?")) return;
+    const ok = await confirmFn({
+      title:        "¿Eliminar esta vacante?",
+      body:         "Se eliminarán también todas las postulaciones asociadas. Esta acción es irreversible.",
+      danger:       true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await supabase.from("job_postings").delete().eq("id", jobId).eq("company_id", user?.id ?? "");
     await fetchJobs();
     await fetchCompanyStats();
+    toast({ type: "success", title: "Vacante eliminada" });
   };
+
+  const fetchMyApplicationsWithTimeline = useCallback(async () => {
+    if (!user?.id || isCompany) return;
+    setLoadingApps(true);
+    const { data } = await supabase
+      .from("job_applications")
+      .select("id, job_id, status, created_at, job_postings!inner(title, profiles!job_postings_company_id_fkey(name))")
+      .eq("applicant_id", user.id)
+      .order("created_at", { ascending: false });
+    setMyApplications(
+      (data ?? []).map((a) => ({
+        id:           a.id as string,
+        job_id:       a.job_id as string,
+        status:       a.status as AtsStatus,
+        created_at:   a.created_at as string,
+        job_title:    (a.job_postings as { title?: string; profiles?: { name?: string } | null } | null)?.title ?? "Vacante",
+        company_name: (a.job_postings as { title?: string; profiles?: { name?: string } | null } | null)?.profiles?.name ?? "Empresa",
+      }))
+    );
+    setLoadingApps(false);
+  }, [user?.id, isCompany]);
 
   const handleApply = async (jobId: string) => {
     if (!user?.id) return;
@@ -363,11 +415,17 @@ export default function EmpleosPage() {
       .insert({ job_id: jobId, applicant_id: user.id, student_id: user.id, status: "pending" });
     if (!err) {
       setAppliedIds((prev) => new Set(prev).add(jobId));
+      // XP reward for applying
       fetch("/api/xp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, type: "job_apply", xp_amount: 50, metadata: { job_id: jobId } }),
+        body: JSON.stringify({ type: "job_apply", xp_amount: 50, metadata: { job_id: jobId } }),
       }).catch(() => {});
+      // Quest progress: apply_job
+      trackQuest("apply_job");
+      toast({ type: "success", title: "¡Postulación enviada!", description: "+50 XP" });
+    } else {
+      toast({ type: "error", title: "No se pudo postular", description: err.message });
     }
     setApplying(null);
   };
@@ -405,15 +463,58 @@ export default function EmpleosPage() {
               {isCompany ? "Gestiona tus publicaciones y candidatos" : "Encuentra tu próxima oportunidad"}
             </p>
           </div>
-          {isCompany && (
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-1.5 bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-violet-700 transition-colors shadow-sm btn-press"
-            >
-              <Plus size={16} /> Nueva vacante
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isCompany && (
+              <button
+                onClick={() => {
+                  setShowApplications((v) => !v);
+                  if (!myApplications.length) fetchMyApplicationsWithTimeline();
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors btn-press ${
+                  showApplications
+                    ? "bg-cyan-600 text-white"
+                    : "bg-white border border-slate-200 text-slate-600 hover:border-cyan-300"
+                }`}
+              >
+                <ListChecks size={16} />
+                Mis postulaciones
+              </button>
+            )}
+            {isCompany && (
+              <button
+                onClick={openCreate}
+                className="flex items-center gap-1.5 bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-violet-700 transition-colors shadow-sm btn-press"
+              >
+                <Plus size={16} /> Nueva vacante
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* ── Student: My applications + timelines ── */}
+        {!isCompany && showApplications && (
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-4 animate-fade-in-up">
+            <h3 className="font-bold text-base">Mis postulaciones</h3>
+            {loadingApps && <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-cyan-400" /></div>}
+            {!loadingApps && myApplications.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-4">Aún no tienes postulaciones.</p>
+            )}
+            <div className="space-y-4">
+              {myApplications.map((app) => (
+                <div key={app.id} className="border border-slate-200/60 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">{app.job_title}</p>
+                      <p className="text-xs text-slate-400">{app.company_name}</p>
+                    </div>
+                    <span className="text-[10px] text-slate-400">{new Date(app.created_at).toLocaleDateString("es-CR")}</span>
+                  </div>
+                  <ApplicationTimeline applicationId={app.id} compact />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Company Analytics Dashboard ── */}
         {isCompany && companyStats && (
@@ -667,7 +768,7 @@ export default function EmpleosPage() {
                                           onChange={(e) => updateApplicantStatus(job.id, app.id, e.target.value as AtsStatus)}
                                           disabled={updatingApp !== null}
                                           className={`text-[11px] font-bold rounded-lg border px-2 py-1.5 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-400 transition-colors pr-5 ${STATUS_STYLES[app.status]}`}
-                                          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center", backgroundSize: "12px" }}
+                                          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2020/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 4px center", backgroundSize: "12px" }}
                                         >
                                           {(Object.entries(STATUS_LABELS) as [AtsStatus, string][]).map(([val, label]) => (
                                             <option key={val} value={val}>{label}</option>
@@ -675,6 +776,21 @@ export default function EmpleosPage() {
                                         </select>
                                       )}
                                     </div>
+
+                                    {/* Propose interview (available once reviewing/interviewing) */}
+                                    {(app.status === "reviewing" || app.status === "interviewing") && (
+                                      <button
+                                        title="Proponer entrevista"
+                                        onClick={() => setProposeFor({
+                                          applicationId: app.id,
+                                          studentName:   app.profile?.name ?? "Candidato",
+                                          jobTitle:      job.title,
+                                        })}
+                                        className="shrink-0 p-1.5 bg-violet-50 text-violet-600 hover:bg-violet-100 rounded-lg transition-colors"
+                                      >
+                                        <CalendarClock size={14} />
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -904,6 +1020,17 @@ export default function EmpleosPage() {
           </button>
         </div>
       </Modal>
+
+      {/* ── Propose Interview Modal (company) ── */}
+      {proposeFor && (
+        <ProposeInterviewModal
+          open
+          onClose={() => setProposeFor(null)}
+          applicationId={proposeFor.applicationId}
+          studentName={proposeFor.studentName}
+          jobTitle={proposeFor.jobTitle}
+        />
+      )}
     </PageLayout>
   );
 }

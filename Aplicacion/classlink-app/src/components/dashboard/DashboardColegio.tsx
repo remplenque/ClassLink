@@ -91,8 +91,12 @@ export default function DashboardColegio() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <Loader2 size={28} className="animate-spin text-amber-400" />
+      <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6 animate-fade-in">
+        <div className="skeleton rounded-2xl h-36" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton rounded-2xl h-24" />)}
+        </div>
+        <div className="skeleton rounded-2xl h-64" />
       </div>
     );
   }

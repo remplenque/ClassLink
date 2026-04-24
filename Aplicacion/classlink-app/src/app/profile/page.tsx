@@ -11,6 +11,8 @@ import type { Vacancy, JobApplicant } from "@/lib/types";
 import { PortfolioGrid } from "./_components/PortfolioGrid";
 import { BadgesGrid }    from "./_components/BadgesGrid";
 import ReputationCard    from "@/components/profile/ReputationCard";
+import { useToast }      from "@/components/ui/Toast";
+import { useConfirm }    from "@/components/ui/ConfirmDialog";
 import {
   MapPin, Mail, Edit, Loader2, Camera, Award, ExternalLink,
   GraduationCap, Lock, Globe, Building2, Users, TrendingUp,
@@ -69,7 +71,9 @@ interface SchoolProfileData {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user }    = useAuth();
+  const { toast }   = useToast();
+  const confirmFn   = useConfirm();
   const [profile, setProfile]   = useState<Profile | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [badges, setBadges]     = useState<UserBadge[]>([]);
@@ -785,13 +789,19 @@ export default function ProfilePage() {
   };
 
   const handleGraduate = async (studentId: string) => {
-    if (!window.confirm("¿Graduar este estudiante? Su rol cambiará a Egresado.")) return;
+    const ok = await confirmFn({
+      title: "¿Graduar este estudiante?",
+      body:  "Su rol cambiará a Egresado. Esta acción no se puede deshacer.",
+      confirmLabel: "Graduar",
+    });
+    if (!ok) return;
     setGraduatingId(studentId);
     const result = await graduateStudent(studentId);
     setGraduatingId(null);
     if ("error" in result && result.error) {
-      alert(result.error);
+      toast({ type: "error", title: "Error al graduar", description: result.error });
     } else {
+      toast({ type: "success", title: "Estudiante graduado correctamente" });
       fetchStudents();
     }
   };
@@ -864,7 +874,10 @@ export default function ProfilePage() {
     setUpdatingApp(applicationId);
     const res = await updateApplicationStatus(applicationId, newStatus, studentId, jobTitle);
     setUpdatingApp(null);
-    if ("error" in res && res.error) { alert(res.error); return; }
+    if ("error" in res && res.error) {
+      toast({ type: "error", title: "Error al actualizar postulación", description: res.error });
+      return;
+    }
     setApplicantStatuses((p) => ({ ...p, [applicationId]: newStatus }));
   };
 
@@ -873,7 +886,11 @@ export default function ProfilePage() {
     setUpdatingReq(reqId);
     const res = await updateInternshipRequest(reqId, status);
     setUpdatingReq(null);
-    if ("error" in res && res.error) { alert(res.error); return; }
+    if ("error" in res && res.error) {
+      toast({ type: "error", title: "Error al procesar solicitud", description: res.error });
+      return;
+    }
+    toast({ type: "success", title: status === "aprobado" ? "Solicitud aprobada" : "Solicitud rechazada" });
     setInternshipReqs((prev) => prev.map((r) => r.id === reqId ? { ...r, status } : r));
   };
 

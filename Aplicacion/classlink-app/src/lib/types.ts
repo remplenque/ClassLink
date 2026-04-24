@@ -321,3 +321,73 @@ export interface QueueRequest {
   /** Submission date string */
   date:        string;
 }
+
+/* ── 10. Gamification ───────────────────────────────────── */
+
+export type XpTier = "Bronce" | "Plata" | "Oro" | "Platino" | "Diamante";
+
+export interface DailyQuestTemplate {
+  code:         string;
+  title:        string;
+  description:  string;
+  icon:         string;
+  target_count: number;
+  xp_reward:    number;
+  category:     "engagement" | "learning" | "social" | "career";
+}
+
+export interface DailyQuestProgress {
+  template_code: string;
+  quest_date:    string;
+  current_count: number;
+  completed_at:  string | null;
+}
+
+/* ── 11. Tech Radar ─────────────────────────────────────── */
+
+export type RadarTrend = "rising" | "stable" | "falling" | "new";
+
+export interface TechRadarEntry {
+  week_start:   string;
+  specialty:    string;
+  skill:        string;
+  heat_score:   number;
+  demand_count: number;
+  supply_count: number;
+  trend:        RadarTrend;
+}
+
+export interface UserRadarSnapshot {
+  user_id:         string;
+  week_start:      string;
+  specialty:       string;
+  matched_skills:  string[];
+  gap_skills:      string[];
+  emerging_skills: string[];
+  radar_score:     number;
+  computed_at:     string;
+}
+
+/* ── 12. Interviews ─────────────────────────────────────── */
+
+export type InterviewStatus =
+  | "proposed" | "accepted" | "declined"
+  | "completed" | "cancelled" | "rescheduled";
+
+export type InterviewModality = "video" | "presencial" | "telefono";
+
+export interface Interview {
+  id:             string;
+  application_id: string;
+  company_id:     string;
+  student_id:     string;
+  proposed_at:    string;
+  duration_mins:  number;
+  modality:       InterviewModality;
+  location:       string;
+  meeting_link:   string;
+  status:         InterviewStatus;
+  notes:          string;
+  created_at:     string;
+  updated_at:     string;
+}

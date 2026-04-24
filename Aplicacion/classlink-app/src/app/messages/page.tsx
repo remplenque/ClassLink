@@ -4,6 +4,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft, Send, Search, Loader2, Trash2, MoreVertical, Check, CheckCheck } from "lucide-react";
+import InterviewProposalBubble from "@/components/ats/InterviewProposalBubble";
 
 interface Participant {
   id: string;
@@ -24,12 +25,14 @@ interface ConversationRow {
 }
 
 interface MessageRow {
-  id: string;
+  id:              string;
   conversation_id: string;
-  sender_id: string;
-  content: string;
-  read: boolean;
-  created_at: string;
+  sender_id:       string;
+  content:         string;
+  read:            boolean;
+  created_at:      string;
+  kind?:           "text" | "interview_proposal" | "system";
+  metadata?:       Record<string, unknown> | null;
 }
 
 // ── Timestamp helpers ────────────────────────────────────
@@ -154,7 +157,7 @@ export default function MessagesPage() {
     setLoadingMsgs(true);
     const { data, error: err } = await supabase
       .from("messages")
-      .select("id, conversation_id, sender_id, content, read, created_at")
+      .select("id, conversation_id, sender_id, content, read, created_at, kind, metadata")
       .eq("conversation_id", convoId)
       .order("created_at", { ascending: true })
       .limit(100);
@@ -417,8 +420,27 @@ export default function MessagesPage() {
                   <div className="text-center py-10 text-sm text-slate-400">No hay mensajes aún. ¡Envía el primero!</div>
                 )}
                 {messages.map((m) => {
-                  const isMe = m.sender_id === user?.id;
+                  const isMe         = m.sender_id === user?.id;
                   const isOptimistic = m.id.startsWith("opt-");
+                  const isProposal   = m.kind === "interview_proposal";
+
+                  if (isProposal && m.metadata) {
+                    return (
+                      <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                        <div className="max-w-[85%]">
+                          <InterviewProposalBubble
+                            metadata={m.metadata as unknown as Parameters<typeof InterviewProposalBubble>[0]["metadata"]}
+                            isFromMe={isMe}
+                            initialStatus={((m.metadata as Record<string, unknown>).status as "proposed" | "accepted" | "declined") ?? "proposed"}
+                          />
+                          <p className={`text-[9px] mt-1 ${isMe ? "text-right text-slate-400" : "text-slate-400"}`}>
+                            {fmtTime(m.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"} group`}>
                       <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm relative ${

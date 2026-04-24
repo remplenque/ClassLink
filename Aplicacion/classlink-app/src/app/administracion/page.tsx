@@ -24,6 +24,8 @@ import {
   Loader2, CheckCircle2, XCircle, ChevronRight, Upload, ShieldCheck,
 } from "lucide-react";
 import { TP_SPECIALTIES } from "@/lib/specialties";
+import { useToast }   from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -48,8 +50,10 @@ type AdminTab = "Mis Estudiantes" | "Estadísticas" | "Solicitudes";
 // ── Component ─────────────────────────────────────────────
 
 export default function AdministracionPage() {
-  const { user } = useAuth();
-  const { role } = useRole();
+  const { user }  = useAuth();
+  const { role }  = useRole();
+  const { toast } = useToast();
+  const confirmFn = useConfirm();
 
   const [tab, setTab] = useState<AdminTab>("Mis Estudiantes");
 
@@ -184,13 +188,20 @@ export default function AdministracionPage() {
   };
 
   const handleGraduate = async (studentId: string) => {
-    if (!window.confirm("¿Graduar este estudiante? Su rol cambiará a Egresado.")) return;
+    const ok = await confirmFn({
+      title:        "¿Graduar este estudiante?",
+      body:         "Su rol cambiará a Egresado. Esta acción no se puede deshacer.",
+      confirmLabel: "Graduar",
+    });
+    if (!ok) return;
     setGraduatingId(studentId);
     const result = await graduateStudent(studentId);
     setGraduatingId(null);
     if ("error" in result && result.error) {
+      toast({ type: "error", title: "Error al graduar", description: result.error });
       setGraduateErr(result.error);
     } else {
+      toast({ type: "success", title: "Estudiante graduado correctamente" });
       fetchStudents();
     }
   };

@@ -15,9 +15,11 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider }  from "@/lib/auth-context";
-import { RoleProvider }  from "@/lib/role-context";
-import CursorGlow        from "@/components/layout/CursorGlow";
+import { AuthProvider }    from "@/lib/auth-context";
+import { RoleProvider }    from "@/lib/role-context";
+import { ToastProvider }   from "@/components/ui/Toast";
+import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
+import CursorGlow          from "@/components/layout/CursorGlow";
 
 export const metadata: Metadata = {
   title:       "ClassLink – Vocational Excellence",
@@ -37,7 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         */}
         <AuthProvider>
           <RoleProvider>
-            {children}
+            <ToastProvider>
+              <ConfirmProvider>
+                {children}
+              </ConfirmProvider>
+            </ToastProvider>
           </RoleProvider>
         </AuthProvider>
       </body>
