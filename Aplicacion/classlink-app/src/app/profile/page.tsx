@@ -4,7 +4,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { profileEditSchema } from "@/lib/schemas";
+import { profileEditSchema, THEME_COLORS, type ThemeColor } from "@/lib/schemas";
 import { createStudent, graduateStudent, updateStudentProfile, upsertSchoolReport } from "@/app/actions/school";
 import { updateApplicationStatus, updateInternshipRequest, createInternshipRequest } from "@/app/actions/company";
 import type { Vacancy, JobApplicant } from "@/lib/types";
@@ -41,6 +41,9 @@ interface Profile {
   school_id: string | null;
   // Reputation
   reputation_score: number;
+  // Personalization
+  banner_url: string | null;
+  theme_color: ThemeColor | null;
 }
 
 interface DbSchoolReport {
@@ -79,6 +82,7 @@ export default function ProfilePage() {
   const [saveError, setSaveError]   = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   const [editName,         setEditName]         = useState("");
   const [editBio,          setEditBio]          = useState("");
@@ -88,6 +92,7 @@ export default function ProfilePage() {
   const [editAvailability, setEditAvailability] = useState("Disponible");
   const [editWebsite,      setEditWebsite]      = useState("");
   const [editIndustry,     setEditIndustry]     = useState("");
+  const [editThemeColor,   setEditThemeColor]   = useState<ThemeColor | "">("");
 
   // Inline edit mode (student)
   const [isEditing,        setIsEditing]        = useState(false);
@@ -426,6 +431,7 @@ export default function ProfilePage() {
     setEditAvailability(profile.availability ?? "Disponible");
     setEditWebsite(profile.website ?? "");
     setEditIndustry(profile.industry ?? "");
+    setEditThemeColor((profile.theme_color ?? "") as ThemeColor | "");
     setSaveError(null);
     setSaveSuccess(false);
     setEditOpen(true);
@@ -443,6 +449,7 @@ export default function ProfilePage() {
       title:        editTitle       || undefined,
       availability: editAvailability || undefined,
       website:      editWebsite     || undefined,
+      theme_color:  editThemeColor  || undefined,
     });
 
     if (!parsed.success) {
@@ -453,10 +460,11 @@ export default function ProfilePage() {
 
     try {
       const updatePayload: Record<string, string | number | boolean | null | undefined> = {
-        name:       editName.trim(),
-        bio:        editBio.trim(),
-        location:   editLocation.trim(),
-        updated_at: new Date().toISOString(),
+        name:        editName.trim(),
+        bio:         editBio.trim(),
+        location:    editLocation.trim(),
+        theme_color: editThemeColor || null,
+        updated_at:  new Date().toISOString(),
       };
 
       const isStudent = profile.role === "Estudiante" || profile.role === "Egresado";
@@ -508,6 +516,27 @@ export default function ProfilePage() {
       setError("No se pudo subir la foto de perfil.");
     }
     setUploadingAvatar(false);
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    if (file.size > 5 * 1024 * 1024) { setError("La imagen debe ser menor a 5MB."); return; }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Solo se permiten imágenes JPEG, PNG o WebP."); return;
+    }
+    setUploadingBanner(true);
+    const ext  = file.name.split(".").pop();
+    const path = `${user.id}/banner.${ext}`;
+    const { error: upErr } = await supabase.storage.from("banners").upload(path, file, { upsert: true });
+    if (!upErr) {
+      const { data: { publicUrl } } = supabase.storage.from("banners").getPublicUrl(path);
+      await supabase.from("profiles").update({ banner_url: publicUrl }).eq("id", user.id);
+      setProfile((prev) => prev ? { ...prev, banner_url: publicUrl } : prev);
+    } else {
+      setError("No se pudo subir la imagen del banner.");
+    }
+    setUploadingBanner(false);
   };
 
   // ── CV Download (student / graduate) ─────────────────────────
@@ -634,19 +663,27 @@ export default function ProfilePage() {
     return ["Resumen"]; // School admin tabs migrated to /administracion
   };
 
-  const gradientClass = isCompany ? "from-violet-500 via-purple-500 to-violet-700"
-                      : isSchool  ? "from-amber-500 via-orange-500 to-amber-700"
-                      :             "from-cyan-500 via-teal-500 to-cyan-700";
+  const THEME_PALETTE: Record<string, { gradient: string; btn: string; active: string; text: string; swatch: string; label: string }> = {
+    cyan:    { gradient: "from-cyan-500 via-teal-500 to-cyan-700",         btn: "bg-cyan-600 hover:bg-cyan-700",         active: "bg-cyan-50 text-cyan-700 shadow-sm",         text: "text-cyan-600",    swatch: "bg-cyan-500",    label: "Cian" },
+    violet:  { gradient: "from-violet-500 via-purple-500 to-violet-700",   btn: "bg-violet-600 hover:bg-violet-700",     active: "bg-violet-50 text-violet-700 shadow-sm",   text: "text-violet-600",  swatch: "bg-violet-500",  label: "Violeta" },
+    amber:   { gradient: "from-amber-500 via-orange-500 to-amber-700",     btn: "bg-amber-600 hover:bg-amber-700",       active: "bg-amber-50 text-amber-700 shadow-sm",     text: "text-amber-600",   swatch: "bg-amber-500",   label: "Ámbar" },
+    rose:    { gradient: "from-rose-500 via-pink-500 to-rose-700",         btn: "bg-rose-600 hover:bg-rose-700",         active: "bg-rose-50 text-rose-700 shadow-sm",       text: "text-rose-600",    swatch: "bg-rose-500",    label: "Rosa" },
+    emerald: { gradient: "from-emerald-500 via-green-500 to-emerald-700",  btn: "bg-emerald-600 hover:bg-emerald-700",   active: "bg-emerald-50 text-emerald-700 shadow-sm", text: "text-emerald-600", swatch: "bg-emerald-500", label: "Esmeralda" },
+    blue:    { gradient: "from-blue-500 via-indigo-500 to-blue-700",       btn: "bg-blue-600 hover:bg-blue-700",         active: "bg-blue-50 text-blue-700 shadow-sm",       text: "text-blue-600",    swatch: "bg-blue-500",    label: "Azul" },
+    fuchsia: { gradient: "from-fuchsia-500 via-purple-500 to-fuchsia-700", btn: "bg-fuchsia-600 hover:bg-fuchsia-700",   active: "bg-fuchsia-50 text-fuchsia-700 shadow-sm", text: "text-fuchsia-600", swatch: "bg-fuchsia-500", label: "Fucsia" },
+    slate:   { gradient: "from-slate-600 via-slate-500 to-slate-700",      btn: "bg-slate-600 hover:bg-slate-700",       active: "bg-slate-100 text-slate-700 shadow-sm",    text: "text-slate-600",   swatch: "bg-slate-500",   label: "Gris" },
+  };
 
-  const btnClass = isCompany ? "bg-violet-600 hover:bg-violet-700"
-                 : isSchool  ? "bg-amber-600 hover:bg-amber-700"
-                 :             "bg-cyan-600 hover:bg-cyan-700";
+  const roleDefaultTheme = isCompany ? "violet" : isSchool ? "amber" : "cyan";
+  const activeTheme = (profile.theme_color && THEME_PALETTE[profile.theme_color])
+    ? profile.theme_color
+    : roleDefaultTheme;
+  const themePalette = THEME_PALETTE[activeTheme];
 
-  const activeTabClass = isCompany ? "bg-violet-50 text-violet-700 shadow-sm"
-                       : isSchool  ? "bg-amber-50 text-amber-700 shadow-sm"
-                       :             "bg-cyan-50 text-cyan-700 shadow-sm";
-
-  const accentText = isCompany ? "text-violet-600" : isSchool ? "text-amber-600" : "text-cyan-600";
+  const gradientClass  = themePalette.gradient;
+  const btnClass       = themePalette.btn;
+  const activeTabClass = themePalette.active;
+  const accentText     = themePalette.text;
 
   const xpPct = profile.xp && profile.level
     ? Math.min(100, Math.round(((profile.xp % 500) / 500) * 100))
@@ -875,11 +912,40 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl border border-slate-200/60 animate-fade-in-up relative">
 
           {/* Cover Banner */}
-          <div className={`h-44 md:h-80 rounded-t-2xl bg-gradient-to-r ${gradientClass} overflow-hidden relative`}>
-            <div className="absolute inset-0 hero-pattern opacity-20" />
+          <div className={`h-44 md:h-80 rounded-t-2xl overflow-hidden relative group/banner ${!profile.banner_url ? `bg-gradient-to-r ${gradientClass}` : ""}`}>
+            {profile.banner_url ? (
+              <img
+                src={profile.banner_url}
+                alt="Banner"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 hero-pattern opacity-20" />
+            )}
+
+            {/* Banner upload overlay */}
+            <label className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover/banner:opacity-100 transition-opacity cursor-pointer z-10">
+              {uploadingBanner
+                ? <Loader2 size={28} className="text-white animate-spin" />
+                : (
+                  <span className="flex flex-col items-center gap-1 text-white">
+                    <Camera size={28} />
+                    <span className="text-xs font-semibold">Cambiar banner</span>
+                  </span>
+                )
+              }
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleBannerUpload}
+                disabled={uploadingBanner}
+              />
+            </label>
+
             {isStudent ? (
               isEditing ? (
-                <div className="absolute top-4 right-4 flex items-center gap-2">
+                <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
                   <button
                     onClick={saveInlineEdit}
                     className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
@@ -896,7 +962,7 @@ export default function ProfilePage() {
               ) : (
                 <button
                   onClick={startInlineEdit}
-                  className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press`}
+                  className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press z-20`}
                 >
                   <Edit size={14} /> Editar perfil
                 </button>
@@ -904,7 +970,7 @@ export default function ProfilePage() {
             ) : (
               <button
                 onClick={openEdit}
-                className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press`}
+                className={`absolute top-4 right-4 flex items-center gap-1.5 ${btnClass} text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm btn-press z-20`}
               >
                 <Edit size={14} /> Editar perfil
               </button>
@@ -2539,6 +2605,30 @@ export default function ProfilePage() {
               </div>
             </>
           )}
+
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-2 block">Color del perfil</label>
+            <div className="flex flex-wrap gap-2">
+              {THEME_COLORS.map((color) => {
+                const p = THEME_PALETTE[color];
+                const selected = (editThemeColor || roleDefaultTheme) === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    title={p.label}
+                    onClick={() => setEditThemeColor(color)}
+                    className={`w-8 h-8 rounded-full ${p.swatch} transition-transform hover:scale-110 focus:outline-none ${selected ? "ring-2 ring-offset-2 ring-slate-400 scale-110" : ""}`}
+                  />
+                );
+              })}
+            </div>
+            {editThemeColor && (
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Seleccionado: <span className={`font-semibold ${THEME_PALETTE[editThemeColor]?.text ?? ""}`}>{THEME_PALETTE[editThemeColor]?.label}</span>
+              </p>
+            )}
+          </div>
 
           <button
             onClick={handleSave}

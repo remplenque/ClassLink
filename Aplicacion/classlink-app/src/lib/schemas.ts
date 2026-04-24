@@ -38,6 +38,11 @@ export const createStudentSchema = z.object({
 });
 
 // ── Profile ─────────────────────────────────────────────────
+export const THEME_COLORS = [
+  "cyan", "violet", "amber", "rose", "emerald", "blue", "fuchsia", "slate",
+] as const;
+export type ThemeColor = typeof THEME_COLORS[number];
+
 export const profileEditSchema = z.object({
   name:         z.string().min(2).max(100),
   bio:          z.string().max(500).optional(),
@@ -46,6 +51,7 @@ export const profileEditSchema = z.object({
   title:        z.string().max(100).optional(),
   availability: z.enum(["Disponible", "En prácticas", "No disponible"]).optional(),
   website:      z.string().url("URL inválida").optional().or(z.literal("")),
+  theme_color:  z.enum(THEME_COLORS).optional().nullable(),
 });
 
 // ── Post ─────────────────────────────────────────────────────
