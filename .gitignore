@@ -1,0 +1,24 @@
+# ── AI / Claude Code ──────────────────────────────────────────────────────────
+.claude/
+.agents/
+.mcp.json
+skills-lock.json
+CLAUDE.md
+bugs.md
+ideas.md
+
+# ── Environment & secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Test / sample data ────────────────────────────────────────────────────────
+Excel Tipo Real/
+Documentos/
+
+# ── Generated / build artefacts ───────────────────────────────────────────────
+Aplicacion/code.html
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
