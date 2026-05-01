@@ -56,4 +56,6 @@ Creative feature ideas and UX improvements surfaced during development. Each ent
 
 ## Implemented Ideas
 
-*No implemented ideas yet.*
+### [S] AI agent button visible for all roles with mock interactivity — `src/components/chat/ChatWidget.tsx`
+- **Rationale:** The floating chat button was gated to Empresa and Colegio only, making it invisible to Estudiante and Egresado users. Removing the role guard and adding role-specific colors + a mock response path lets all users experience the widget while the real AI backend is being built.
+- **Effort:** S — role config map + mock reply path (no API change needed).

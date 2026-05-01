@@ -1,6 +1,6 @@
 "use client";
 // ──────────────────────────────────────────────────────────────────
-// ChatWidget — floating AI assistant (Empresa + Colegio only)
+// ChatWidget — floating AI assistant (all authenticated roles)
 // Epic 3: Context-Aware Agentic Chatbot
 // ──────────────────────────────────────────────────────────────────
 
@@ -9,6 +9,7 @@ import {
   MessageSquare, X, Send, Loader2, Bot, Sparkles, ChevronDown,
 } from "lucide-react";
 import { useRole } from "@/lib/role-context";
+import { useAuth } from "@/lib/auth-context";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -20,18 +21,70 @@ interface ChatMessage {
   tool?:    string;
 }
 
+// ── Per-role config ───────────────────────────────────────────────
+
+const ROLE_CONFIG: Record<string, {
+  accent: string; hover: string; bubble: string;
+  tools: string[]; tagline: string;
+}> = {
+  Empresa: {
+    accent: "bg-violet-600", hover: "hover:bg-violet-700", bubble: "bg-violet-600 text-white",
+    tagline: "Consulta vacantes, postulantes y estadísticas de reclutamiento.",
+    tools: [
+      "Listar y analizar tus vacantes publicadas",
+      "Ver postulantes por vacante y estado",
+      "Obtener el perfil completo de un candidato",
+      "Estadísticas globales de reclutamiento",
+    ],
+  },
+  Colegio: {
+    accent: "bg-cyan-600", hover: "hover:bg-cyan-700", bubble: "bg-cyan-600 text-white",
+    tagline: "Consulta estudiantes, solicitudes de práctica y datos del colegio.",
+    tools: [
+      "Listar y filtrar tus estudiantes activos",
+      "Ver perfil completo de un estudiante",
+      "Consultar solicitudes de prácticas entrantes",
+    ],
+  },
+  Estudiante: {
+    accent: "bg-indigo-600", hover: "hover:bg-indigo-700", bubble: "bg-indigo-600 text-white",
+    tagline: "Explora vacantes, consulta postulaciones y prepárate para entrevistas.",
+    tools: [
+      "Explorar vacantes de práctica disponibles",
+      "Consultar el estado de tus postulaciones",
+      "Prepararte para entrevistas con IA",
+      "Obtener orientación profesional personalizada",
+    ],
+  },
+  Egresado: {
+    accent: "bg-emerald-600", hover: "hover:bg-emerald-700", bubble: "bg-emerald-600 text-white",
+    tagline: "Busca oportunidades, mejora tu CV y obtén recomendaciones personalizadas.",
+    tools: [
+      "Buscar vacantes compatibles con tu perfil",
+      "Revisar y mejorar tu CV con IA",
+      "Obtener recomendaciones de empresas",
+      "Analizar brechas de habilidades",
+    ],
+  },
+};
+
+const FALLBACK_CONFIG = ROLE_CONFIG.Estudiante;
+
 // ── Component ─────────────────────────────────────────────────────
 
 export default function ChatWidget() {
   const { role } = useRole();
-  const [open, setOpen]         = useState(false);
-  const [input, setInput]       = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { user }  = useAuth();
+
+  const [open, setOpen]           = useState(false);
+  const [input, setInput]         = useState("");
+  const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
-  // All hooks MUST be called before any conditional return
+  // All hooks before any early return
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, streaming]);
@@ -42,18 +95,39 @@ export default function ChatWidget() {
 
   const clearHistory = useCallback(() => setMessages([]), []);
 
+  const aiEnabled = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === "true";
+
   const sendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || streaming) return;
     setInput("");
 
-    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: text };
-    const placeholderId = `a-${Date.now()}`;
-    const placeholder: ChatMessage = { id: placeholderId, role: "assistant", content: "", pending: true };
+    const userMsg: ChatMessage      = { id: `u-${Date.now()}`, role: "user", content: text };
+    const placeholderId             = `a-${Date.now()}`;
+    const placeholder: ChatMessage  = { id: placeholderId, role: "assistant", content: "", pending: true };
 
     setMessages((prev) => [...prev, userMsg, placeholder]);
     setStreaming(true);
 
+    // ── Mock path (AI not yet enabled) ───────────────────────────
+    if (!aiEnabled) {
+      await new Promise((r) => setTimeout(r, 1400));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === placeholderId
+            ? {
+                ...m,
+                content: "¡Hola! Soy el Asistente ClassLink. Todavía estoy en desarrollo, pero muy pronto podré ayudarte con todo lo que necesites. ¡Mantente al tanto! 🚀",
+                pending: false,
+              }
+            : m
+        )
+      );
+      setStreaming(false);
+      return;
+    }
+
+    // ── Live path (AI enabled) ────────────────────────────────────
     const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
     try {
@@ -68,9 +142,9 @@ export default function ChatWidget() {
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
 
-      const reader = res.body!.getReader();
+      const reader  = res.body!.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer    = "";
       let assembled = "";
 
       while (true) {
@@ -126,17 +200,13 @@ export default function ChatWidget() {
     } finally {
       setStreaming(false);
     }
-  }, [input, messages, streaming]);
+  }, [input, messages, streaming, aiEnabled]);
 
-  // Only render for Empresa and Colegio, and only when the feature is enabled.
-  // ENABLE_AI_CHAT must be "true" in .env.local — see /api/chat/route.ts.
-  if (role !== "Empresa" && role !== "Colegio") return null;
-  if (process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "true") return null;
+  // Only render for authenticated users
+  if (!user) return null;
 
-  const roleName  = role === "Empresa" ? "Empresa" : "Colegio";
-  const accentCls = role === "Empresa" ? "bg-violet-600" : "bg-cyan-600";
-  const hoverCls  = role === "Empresa" ? "hover:bg-violet-700" : "hover:bg-cyan-700";
-  const bubbleCls = role === "Empresa" ? "bg-violet-600 text-white" : "bg-cyan-600 text-white";
+  const cfg       = ROLE_CONFIG[role] ?? FALLBACK_CONFIG;
+  const { accent: accentCls, hover: hoverCls, bubble: bubbleCls } = cfg;
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -164,7 +234,7 @@ export default function ChatWidget() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white leading-tight">Asistente ClassLink</p>
-              <p className="text-[10px] text-white/70">{roleName} · IA con herramientas</p>
+              <p className="text-[10px] text-white/70">{role} · IA con herramientas</p>
             </div>
             <div className="flex items-center gap-1.5">
               {messages.length > 0 && (
@@ -181,16 +251,20 @@ export default function ChatWidget() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 thin-scrollbar">
             {messages.length === 0 && (
-              <div className="text-center py-8 space-y-2">
-                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                  <Sparkles size={18} className="text-slate-400" />
+              <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-2">
+                <div className={`w-14 h-14 rounded-2xl ${accentCls} flex items-center justify-center`}>
+                  <Sparkles size={24} className="text-white" />
                 </div>
-                <p className="text-xs text-slate-500 font-medium">¿En qué puedo ayudarte?</p>
-                <p className="text-[11px] text-slate-400 px-4">
-                  {role === "Empresa"
-                    ? "Pregúntame sobre tus vacantes, postulantes o estadísticas de reclutamiento."
-                    : "Pregúntame sobre tus estudiantes, solicitudes de prácticas o datos del colegio."}
-                </p>
+                <div>
+                  <p className="font-bold text-slate-700 text-sm">Asistente IA — Próximamente</p>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{cfg.tagline}</p>
+                </div>
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[11px] text-slate-400 space-y-1 text-left">
+                  <p className="font-semibold text-slate-500 mb-1">Herramientas en desarrollo:</p>
+                  {cfg.tools.map((t) => (
+                    <p key={t}>· {t}</p>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -212,7 +286,7 @@ export default function ChatWidget() {
                         Consultando {m.tool}…
                       </div>
                     )}
-                    {m.pending && !m.tool && !m.content && (
+                    {m.pending && !m.content && (
                       <div className="flex gap-1 items-center py-0.5">
                         <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                         <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -235,7 +309,7 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-              placeholder="Escribe tu pregunta…"
+              placeholder={aiEnabled ? "Escribe tu pregunta…" : "Prueba el asistente…"}
               disabled={streaming}
               className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-cyan-200 outline-none disabled:opacity-50"
             />
