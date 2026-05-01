@@ -5,7 +5,7 @@
 
 import { cookies } from "next/headers";
 import { createAdminClient, createServerSupabaseClient } from "@/lib/supabase-server";
-import { createStudentSchema } from "@/lib/schemas";
+import { createStudentSchema, editStudentSchema, isValidRut, formatRut } from "@/lib/schemas";
 
 // ── createStudent ────────────────────────────────────────
 // Creates a student Auth user + profile row owned by the calling school.
@@ -16,6 +16,11 @@ export async function createStudent(formData: {
   lastName:     string;
   email:        string;
   tempPassword: string;
+  rut:          string;
+  gender:       string;
+  cellphone:    string;
+  class_name:   string;
+  age:          number;
   specialty?:   string;
   grade?:       string;
 }) {
@@ -79,13 +84,18 @@ export async function createStudent(formData: {
     .from("profiles")
     .upsert(
       {
-        id:        newUser.user.id,
-        name:      fullName,
-        email:     parsed.data.email.trim(),
-        role:      "Estudiante",
-        school_id: schoolId,
-        specialty: parsed.data.specialty ?? null,
-        grade:     parsed.data.grade ?? null,
+        id:         newUser.user.id,
+        name:       fullName,
+        email:      parsed.data.email.trim(),
+        role:       "Estudiante",
+        school_id:  schoolId,
+        rut:        formatRut(parsed.data.rut),
+        gender:     parsed.data.gender,
+        cellphone:  parsed.data.cellphone.trim(),
+        class_name: parsed.data.class_name.trim(),
+        age:        parsed.data.age,
+        specialty:  parsed.data.specialty ?? null,
+        grade:      parsed.data.grade ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" }
@@ -180,11 +190,16 @@ export async function graduateStudent(studentId: string) {
 // Called by the SmartImporter component after CSV validation.
 // Returns a summary of successes and per-row errors.
 export async function bulkCreateStudents(students: Array<{
-  name:      string;
-  email:     string;
-  password:  string;
-  specialty?: string;
-  grade?:    string;
+  name:        string;
+  email:       string;
+  password:    string;
+  rut:         string;
+  gender:      string;
+  cellphone:   string;
+  class_name:  string;
+  age:         number;
+  specialty?:  string;
+  grade?:      string;
 }>) {
   if (!Array.isArray(students) || students.length === 0) {
     return { error: "Lista vacía." };
@@ -216,6 +231,12 @@ export async function bulkCreateStudents(students: Array<{
   for (let i = 0; i < students.length; i++) {
     const s = students[i];
 
+    // Per-row RUT validation — skip row and report, do not abort the batch
+    if (!isValidRut(s.rut)) {
+      errors.push({ index: i, email: s.email, message: `RUT inválido: ${s.rut}` });
+      continue;
+    }
+
     // Create Auth user
     const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
       email:         s.email.trim(),
@@ -233,13 +254,18 @@ export async function bulkCreateStudents(students: Array<{
     // Upsert profile (trigger may pre-insert a row)
     const { error: profileErr } = await admin.from("profiles").upsert(
       {
-        id:        newUser.user.id,
-        name:      s.name.trim(),
-        email:     s.email.trim(),
-        role:      "Estudiante",
-        school_id: schoolId,
-        specialty: s.specialty ?? null,
-        grade:     s.grade     ?? null,
+        id:         newUser.user.id,
+        name:       s.name.trim(),
+        email:      s.email.trim(),
+        role:       "Estudiante",
+        school_id:  schoolId,
+        rut:        formatRut(s.rut),
+        gender:     s.gender   || null,
+        cellphone:  s.cellphone.trim(),
+        class_name: s.class_name.trim(),
+        age:        s.age      || null,
+        specialty:  s.specialty ?? null,
+        grade:      s.grade     ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" }
@@ -352,6 +378,57 @@ export async function upsertSchoolReport(
   return { success: true };
 }
 
+
+// ── editStudentBySchool ──────────────────────────────────
+// Epic 2 — School RBAC: lets a Colegio backfill or correct mandatory
+// student fields on profiles it owns.
+export async function editStudentBySchool(
+  studentId: string,
+  data: {
+    rut?:        string;
+    gender?:     string;
+    cellphone?:  string;
+    class_name?: string;
+    age?:        number;
+    specialty?:  string;
+    grade?:      string;
+    attendance?: number;
+    soft_skills?: string[];
+  }
+): Promise<{ success?: boolean; error?: string }> {
+  if (!studentId) return { error: "ID inválido." };
+
+  const parsed = editStudentSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createServerSupabaseClient(cookieStore as any); // eslint-disable-line
+  const check = await verifySchoolOwnsStudent(supabase, studentId);
+  if ("error" in check) return check;
+
+  const admin = createAdminClient();
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+  const d = parsed.data;
+  if (d.rut        !== undefined) update.rut        = formatRut(d.rut);
+  if (d.gender     !== undefined) update.gender     = d.gender;
+  if (d.cellphone  !== undefined) update.cellphone  = d.cellphone.trim();
+  if (d.class_name !== undefined) update.class_name = d.class_name.trim();
+  if (d.age        !== undefined) update.age        = d.age;
+  if (d.specialty  !== undefined) update.specialty  = d.specialty;
+  if (d.grade      !== undefined) update.grade      = d.grade;
+  if (d.attendance !== undefined) {
+    if (d.attendance < 0 || d.attendance > 100) return { error: "Asistencia debe estar entre 0 y 100." };
+    update.attendance = d.attendance;
+  }
+  if (d.soft_skills !== undefined) update.soft_skills = d.soft_skills;
+
+  const { error } = await admin.from("profiles").update(update).eq("id", studentId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
 
 // ── validateStudentSkill ─────────────────────────────────
 // Inserts a skill_validations row — the DB trigger then awards the badge,

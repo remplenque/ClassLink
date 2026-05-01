@@ -1,15 +1,17 @@
 "use client";
 // ──────────────────────────────────────────────────────────────────
-// SmartImporter – 4-step bulk student CSV importer for Colegio admins
+// SmartImporter – 4-step bulk student importer for Colegio admins
 // ──────────────────────────────────────────────────────────────────
-// Step 1 · Upload  — drag-and-drop CSV with client-side parsing
-// Step 2 · Map     — auto-detect columns, admin verifies mapping
-// Step 3 · Validate — editable table with real-time error highlighting
-// Step 4 · Import  — sequential auth-user creation with progress
+// Accepts .csv AND .xlsx/.xls files.
+// Step 1 · Upload  — drag-and-drop, file-type detection
+// Step 2 · Map     — auto-detect column headers, admin verifies
+// Step 3 · Validate — editable table, per-row error highlighting
+// Step 4 · Import  — sequential creation with progress + error log
 // ──────────────────────────────────────────────────────────────────
 
 import { useState, useRef, useCallback } from "react";
 import { bulkCreateStudents } from "@/app/actions/school";
+import { isValidRut } from "@/lib/schemas";
 import {
   Upload, X, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2,
   Loader2, FileText, Users, Trash2,
@@ -19,9 +21,15 @@ import {
 
 type Step = "upload" | "map" | "validate" | "import";
 
-type FieldKey = "firstName" | "lastName" | "email" | "specialty" | "grade" | "tempPassword";
+type FieldKey =
+  | "firstName" | "lastName" | "email" | "tempPassword"
+  | "rut" | "gender" | "cellphone" | "class_name" | "age"
+  | "specialty" | "grade";
 
-const REQUIRED_FIELDS: FieldKey[] = ["firstName", "lastName", "email", "tempPassword"];
+const REQUIRED_FIELDS: FieldKey[] = [
+  "firstName", "lastName", "email", "tempPassword",
+  "rut", "gender", "cellphone", "class_name", "age",
+];
 const OPTIONAL_FIELDS: FieldKey[] = ["specialty", "grade"];
 const ALL_FIELDS: FieldKey[] = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
@@ -30,8 +38,13 @@ const FIELD_LABELS: Record<FieldKey, string> = {
   lastName:     "Apellido",
   email:        "Correo",
   tempPassword: "Contraseña Temporal",
+  rut:          "RUT",
+  gender:       "Género",
+  cellphone:    "Celular",
+  class_name:   "Clase / Curso",
+  age:          "Edad",
   specialty:    "Especialidad",
-  grade:        "Grado / Curso",
+  grade:        "Grado",
 };
 
 const FIELD_PLACEHOLDERS: Record<FieldKey, string> = {
@@ -39,11 +52,16 @@ const FIELD_PLACEHOLDERS: Record<FieldKey, string> = {
   lastName:     "Ej: Pérez",
   email:        "Ej: juan@colegio.cl",
   tempPassword: "Mín. 8 caracteres",
+  rut:          "Ej: 12.345.678-9",
+  gender:       "Masculino / Femenino / Otro",
+  cellphone:    "Ej: +56912345678",
+  class_name:   "Ej: 3°A Mecatrónica",
+  age:          "Ej: 17",
   specialty:    "Ej: Mecatrónica",
   grade:        "Ej: 3°A",
 };
 
-// Auto-mapping: common CSV header → field key
+// Auto-mapping: lowercased CSV/XLSX header → FieldKey
 const AUTO_MAP: Record<string, FieldKey> = {
   nombre: "firstName",  nombres: "firstName",  "primer nombre": "firstName",
   name: "firstName",    firstname: "firstName", "first name": "firstName",
@@ -51,16 +69,26 @@ const AUTO_MAP: Record<string, FieldKey> = {
   "last name": "lastName", surname: "lastName",
   email: "email",       correo: "email",        mail: "email",
   "correo electronico": "email", "correo electrónico": "email",
+  rut: "rut",           "rut alumno": "rut",    "num doc": "rut",
+  "documento": "rut",   "cedula": "rut",        "id": "rut",
+  genero: "gender",     género: "gender",       sexo: "gender",
+  gender: "gender",
+  celular: "cellphone", telefono: "cellphone",  teléfono: "cellphone",
+  fono: "cellphone",    movil: "cellphone",     móvil: "cellphone",
+  cellphone: "cellphone", phone: "cellphone",   "num tel": "cellphone",
+  clase: "class_name",  curso: "class_name",    "nombre curso": "class_name",
+  class_name: "class_name", "clase curso": "class_name",
+  edad: "age",          age: "age",             años: "age",
   especialidad: "specialty", specialty: "specialty", area: "specialty",
   carrera: "specialty", "área": "specialty",
-  grado: "grade",       grade: "grade",         curso: "grade",
-  nivel: "grade",       año: "grade",           ano: "grade",
+  grado: "grade",       grade: "grade",         nivel: "grade",
+  año: "grade",         ano: "grade",
   contrasena: "tempPassword", contraseña: "tempPassword",
   password: "tempPassword",   clave: "tempPassword",
   "temp password": "tempPassword",
 };
 
-type ColumnMapping = Record<FieldKey, string | null>; // fieldKey → csvHeader
+type ColumnMapping = Record<FieldKey, string | null>;
 
 interface StudentRow {
   _id:    number;
@@ -73,8 +101,7 @@ interface ImportResult {
   errors: Array<{ index: number; email: string; message: string }>;
 }
 
-// ── CSV Parser ────────────────────────────────────────────────────
-// Handles quoted fields, commas inside quotes, and CRLF line endings.
+// ── CSV parser ────────────────────────────────────────────────────
 
 function parseCSV(raw: string): { headers: string[]; rows: Record<string, string>[] } {
   const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
@@ -125,9 +152,37 @@ function parseCSV(raw: string): { headers: string[]; rows: Record<string, string
   return { headers, rows };
 }
 
+// ── XLSX parser (uses SheetJS) ────────────────────────────────────
+
+async function parseXLSX(buffer: ArrayBuffer): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return { headers: [], rows: [] };
+  const sheet = workbook.Sheets[sheetName];
+  // raw: false → coerces everything to string; header:1 → array of arrays
+  const data = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" });
+  if (data.length < 2) return { headers: [], rows: [] };
+
+  const headerRow = (data[0] as unknown[]).map((h) =>
+    String(h ?? "").toLowerCase().trim()
+  );
+
+  const rows: Record<string, string>[] = (data.slice(1) as unknown[][])
+    .filter((r) => r.some((c) => String(c ?? "").trim() !== ""))
+    .map((r) => {
+      const row: Record<string, string> = {};
+      headerRow.forEach((h, i) => { row[h] = String(r[i] ?? "").trim(); });
+      return row;
+    });
+
+  return { headers: headerRow, rows };
+}
+
 // ── Validation ────────────────────────────────────────────────────
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_GENDERS = new Set(["masculino", "femenino", "otro", "prefiero no decir"]);
 
 function validateRow(
   row: Record<string, string>,
@@ -148,6 +203,25 @@ function validateRow(
   if (!get("tempPassword")) errors.tempPassword = "Requerido";
   else if (get("tempPassword").length < 8) errors.tempPassword = "Mínimo 8 caracteres";
 
+  if (!get("rut")) errors.rut = "Requerido";
+  else if (!isValidRut(get("rut"))) errors.rut = "RUT inválido";
+
+  if (!get("gender")) errors.gender = "Requerido";
+  else if (!VALID_GENDERS.has(get("gender").toLowerCase())) errors.gender = "Valor inválido";
+
+  if (!get("cellphone")) errors.cellphone = "Requerido";
+  else if (get("cellphone").replace(/\D/g, "").length < 7) errors.cellphone = "Teléfono muy corto";
+
+  if (!get("class_name")) errors.class_name = "Requerido";
+
+  const ageStr = get("age");
+  if (!ageStr) {
+    errors.age = "Requerido";
+  } else {
+    const ageNum = parseInt(ageStr, 10);
+    if (isNaN(ageNum) || ageNum < 10 || ageNum > 100) errors.age = "Edad inválida (10–100)";
+  }
+
   return errors;
 }
 
@@ -162,10 +236,9 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
   const [dragging, setDragging] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
-  const [mapping, setMapping] = useState<ColumnMapping>({
-    firstName: null, lastName: null, email: null,
-    tempPassword: null, specialty: null, grade: null,
-  });
+  const [mapping, setMapping] = useState<ColumnMapping>(
+    Object.fromEntries(ALL_FIELDS.map((f) => [f, null])) as ColumnMapping
+  );
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
@@ -173,30 +246,55 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
   const [parseError, setParseError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // ── Helpers ────────────────────────────────────────────────────
+  // ── File processing ───────────────────────────────────────────
 
-  const processFile = (file: File) => {
+  const applyParsed = (h: string[], rows: Record<string, string>[]) => {
+    setHeaders(h);
+    setRawRows(rows);
+    const auto: ColumnMapping = Object.fromEntries(
+      ALL_FIELDS.map((f) => [f, null])
+    ) as ColumnMapping;
+    h.forEach((header) => {
+      const normalised = header.replace(/[^a-záéíóúñü ]/gi, "").toLowerCase();
+      const key = AUTO_MAP[normalised];
+      if (key && !auto[key]) auto[key] = header;
+    });
+    setMapping(auto);
+    setStep("map");
+  };
+
+  const processFile = async (file: File) => {
     setParseError(null);
-    if (!file.name.endsWith(".csv") && file.type !== "text/csv") {
-      setParseError("Solo se aceptan archivos .csv");
+    const name = file.name.toLowerCase();
+    const isExcel = name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".xlsm");
+    const isCsv   = name.endsWith(".csv") || file.type === "text/csv";
+
+    if (!isExcel && !isCsv) {
+      setParseError("Solo se aceptan archivos .csv, .xlsx o .xls");
       return;
     }
+
+    if (isExcel) {
+      const buffer = await file.arrayBuffer();
+      try {
+        const { headers: h, rows } = await parseXLSX(buffer);
+        if (h.length === 0) { setParseError("El archivo no tiene encabezados detectables."); return; }
+        if (rows.length === 0) { setParseError("No se encontraron filas de datos."); return; }
+        applyParsed(h, rows);
+      } catch {
+        setParseError("No se pudo leer el archivo Excel. Verifique que no esté protegido.");
+      }
+      return;
+    }
+
+    // CSV path
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const { headers: h, rows } = parseCSV(text);
       if (h.length === 0) { setParseError("El archivo está vacío o no tiene encabezados."); return; }
       if (rows.length === 0) { setParseError("No se encontraron filas de datos."); return; }
-      setHeaders(h);
-      setRawRows(rows);
-      // Auto-map
-      const auto: ColumnMapping = { firstName: null, lastName: null, email: null, tempPassword: null, specialty: null, grade: null };
-      h.forEach((header) => {
-        const key = AUTO_MAP[header.replace(/[^a-záéíóúñü ]/gi, "").toLowerCase()];
-        if (key && !auto[key]) auto[key] = header;
-      });
-      setMapping(auto);
-      setStep("map");
+      applyParsed(h, rows);
     };
     reader.readAsText(file, "UTF-8");
   };
@@ -242,18 +340,20 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
 
     const payload = valid.map((s) => {
       const get = (f: FieldKey) => (mapping[f] ? (s[mapping[f]!] as string) ?? "" : "").trim();
-      const firstName = get("firstName");
-      const lastName  = get("lastName");
       return {
-        name:      `${firstName} ${lastName}`.trim(),
-        email:     get("email"),
-        password:  get("tempPassword"),
-        specialty: get("specialty") || undefined,
-        grade:     get("grade")     || undefined,
+        name:       `${get("firstName")} ${get("lastName")}`.trim(),
+        email:      get("email"),
+        password:   get("tempPassword"),
+        rut:        get("rut"),
+        gender:     get("gender"),
+        cellphone:  get("cellphone"),
+        class_name: get("class_name"),
+        age:        parseInt(get("age"), 10) || 0,
+        specialty:  get("specialty") || undefined,
+        grade:      get("grade")     || undefined,
       };
     });
 
-    // Simulate incremental progress while waiting
     const ticker = setInterval(() => {
       setImportProgress((p) => Math.min(p + 2, 90));
     }, 300);
@@ -295,7 +395,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-extrabold">Importador Inteligente</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Carga masiva de estudiantes desde un archivo CSV</p>
+              <p className="text-xs text-slate-500 mt-0.5">CSV y Excel (.xlsx/.xls) · incluye RUT, género, celular, clase, edad</p>
             </div>
             <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center hover:bg-slate-200 transition-colors">
               <X size={16} />
@@ -340,13 +440,18 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
               >
                 <Upload size={32} className={dragging ? "text-cyan-500" : "text-slate-300"} />
                 <div className="text-center">
-                  <p className="font-semibold text-slate-700 text-sm">Arrastra tu CSV aquí</p>
+                  <p className="font-semibold text-slate-700 text-sm">Arrastra tu archivo aquí</p>
                   <p className="text-xs text-slate-400 mt-1">o haz clic para seleccionar</p>
                 </div>
                 <span className="text-[10px] text-slate-300 bg-slate-100 px-3 py-1 rounded-full">
-                  Formato: .csv · UTF-8 recomendado
+                  Formatos aceptados: .csv · .xlsx · .xls
                 </span>
-                <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }} />
+                <input
+                  ref={fileRef} type="file"
+                  accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  className="hidden"
+                  onChange={(e) => { if (e.target.files?.[0]) processFile(e.target.files[0]); }}
+                />
               </div>
 
               {parseError && (
@@ -356,12 +461,11 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
               )}
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs text-slate-500 space-y-1.5">
-                <p className="font-bold text-slate-600 mb-2 flex items-center gap-1.5"><FileText size={13} /> Formato esperado del CSV</p>
-                <p>El archivo debe tener una <strong>fila de encabezados</strong> con columnas como:</p>
+                <p className="font-bold text-slate-600 mb-2 flex items-center gap-1.5"><FileText size={13} /> Columnas esperadas</p>
                 <code className="block bg-white rounded-lg px-3 py-2 text-[11px] border border-slate-200 font-mono">
-                  Nombre, Apellido, Email, Contraseña, Especialidad, Grado
+                  Nombre, Apellido, Email, Contraseña, RUT, Género, Celular, Clase, Edad, Especialidad, Grado
                 </code>
-                <p>El sistema detectará automáticamente las columnas. Las columnas obligatorias son: <strong>Nombre, Apellido, Email, Contraseña</strong>.</p>
+                <p>El sistema detecta las columnas automáticamente. Campos obligatorios: <strong>Nombre, Apellido, Email, Contraseña, RUT, Género, Celular, Clase, Edad</strong>.</p>
               </div>
             </div>
           )}
@@ -375,7 +479,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
               </div>
 
               <p className="text-xs text-slate-500">
-                El sistema detectó las siguientes columnas en tu CSV. Verifica o ajusta el mapeo:
+                Verifica o ajusta el mapeo de columnas detectadas:
               </p>
 
               <div className="space-y-3">
@@ -413,7 +517,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
               {REQUIRED_FIELDS.some((f) => !mapping[f]) && (
                 <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                   <AlertTriangle size={14} />
-                  Faltan campos obligatorios sin mapear: {REQUIRED_FIELDS.filter((f) => !mapping[f]).map((f) => FIELD_LABELS[f]).join(", ")}
+                  Faltan campos obligatorios: {REQUIRED_FIELDS.filter((f) => !mapping[f]).map((f) => FIELD_LABELS[f]).join(", ")}
                 </div>
               )}
             </div>
@@ -442,7 +546,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
                         {ALL_FIELDS.map((f) => (
-                          <th key={f} className="px-3 py-2 text-left font-bold text-slate-500">{FIELD_LABELS[f]}</th>
+                          <th key={f} className="px-3 py-2 text-left font-bold text-slate-500 whitespace-nowrap">{FIELD_LABELS[f]}</th>
                         ))}
                         <th className="px-3 py-2 w-8" />
                       </tr>
@@ -464,7 +568,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
                                     placeholder={col ? FIELD_PLACEHOLDERS[field] : "—"}
                                     disabled={!col}
                                     title={err}
-                                    className={`w-full min-w-[90px] px-2 py-1 rounded-lg text-[11px] border outline-none bg-transparent ${
+                                    className={`w-full min-w-[80px] px-2 py-1 rounded-lg text-[11px] border outline-none bg-transparent ${
                                       err
                                         ? "border-red-300 text-red-700 placeholder-red-300"
                                         : "border-transparent focus:border-cyan-300 focus:bg-white"
@@ -497,10 +601,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
                   <Loader2 size={40} className="animate-spin text-cyan-500 mx-auto" />
                   <p className="text-sm font-semibold text-slate-600">Creando cuentas de estudiantes…</p>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full transition-all duration-300"
-                      style={{ width: `${importProgress}%` }}
-                    />
+                    <div className="h-full bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }} />
                   </div>
                   <p className="text-xs text-slate-400">{importProgress}% completado</p>
                 </div>
@@ -513,7 +614,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
                     <div>
                       <p className="font-extrabold text-emerald-700 text-lg">{importResult.created} estudiantes creados</p>
                       {importResult.errors.length > 0 && (
-                        <p className="text-xs text-amber-600 mt-0.5">{importResult.errors.length} no pudieron crearse</p>
+                        <p className="text-xs text-amber-600 mt-0.5">{importResult.errors.length} filas no pudieron importarse</p>
                       )}
                     </div>
                   </div>
@@ -521,7 +622,7 @@ export default function SmartImporter({ onClose, onSuccess }: Props) {
                   {importResult.errors.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-red-600 flex items-center gap-1.5">
-                        <AlertTriangle size={13} /> Errores al importar
+                        <AlertTriangle size={13} /> Informe de errores
                       </p>
                       <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-1.5 max-h-36 overflow-y-auto">
                         {importResult.errors.map((e) => (

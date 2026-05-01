@@ -3,7 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Send, Search, Loader2, Trash2, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { useRole } from "@/lib/role-context";
+import { ArrowLeft, Send, Search, Loader2, Trash2, MoreVertical, Check, CheckCheck, Users } from "lucide-react";
 import InterviewProposalBubble from "@/components/ats/InterviewProposalBubble";
 
 interface Participant {
@@ -35,6 +36,14 @@ interface MessageRow {
   metadata?:       Record<string, unknown> | null;
 }
 
+interface StudentDirectoryEntry {
+  id:       string;
+  name:     string;
+  avatar:   string | null;
+  specialty: string | null;
+  class_name: string | null;
+}
+
 // ── Timestamp helpers ────────────────────────────────────
 
 function fmtRelative(iso: string): string {
@@ -55,6 +64,7 @@ function fmtTime(iso: string): string {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { role } = useRole();
   const [convos, setConvos] = useState<ConversationRow[]>([]);
   const [activeConvo, setActiveConvo] = useState<ConversationRow | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
@@ -65,6 +75,13 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ── Student directory (Colegio only) ──────────────────────────
+  const [leftTab, setLeftTab] = useState<"convos" | "students">("convos");
+  const [students, setStudents] = useState<StudentDirectoryEntry[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [startingConvo, setStartingConvo] = useState<string | null>(null);
 
   // Fetch conversations + enrich with unread count + last message preview
   const fetchConversations = useCallback(async () => {
@@ -151,6 +168,88 @@ export default function MessagesPage() {
   }, [user?.id]);
 
   useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
+  // ── Student directory fetch (Colegio only) ────────────────────
+  const fetchStudents = useCallback(async () => {
+    if (!user?.id || role !== "Colegio") return;
+    setLoadingStudents(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, avatar, specialty, class_name")
+      .eq("school_id", user.id)
+      .eq("role", "Estudiante")
+      .order("name");
+    setStudents((data ?? []) as StudentDirectoryEntry[]);
+    setLoadingStudents(false);
+  }, [user?.id, role]);
+
+  useEffect(() => {
+    if (leftTab === "students") fetchStudents();
+  }, [leftTab, fetchStudents]);
+
+  // Open (or resume) a DM between this school and a student
+  const openStudentConvo = useCallback(async (student: StudentDirectoryEntry) => {
+    if (!user?.id) return;
+    setStartingConvo(student.id);
+
+    // Find or create a canonical conversation (sorted pair)
+    const a = user.id < student.id ? user.id : student.id;
+    const b = user.id < student.id ? student.id : user.id;
+
+    // Check if conversation already exists
+    const { data: existing } = await supabase
+      .from("conversations")
+      .select("id, user1_id, user2_id, last_message_at")
+      .or(`user1_id.eq.${a},user2_id.eq.${a}`)
+      .or(`user1_id.eq.${b},user2_id.eq.${b}`)
+      .limit(10);
+
+    const found = (existing ?? []).find(
+      (c: { user1_id: string; user2_id: string }) =>
+        (c.user1_id === a && c.user2_id === b) || (c.user1_id === b && c.user2_id === a)
+    );
+
+    let convoId: string;
+    if (found) {
+      convoId = found.id;
+    } else {
+      const { data: created, error: createErr } = await supabase
+        .from("conversations")
+        .insert({ user1_id: a, user2_id: b })
+        .select("id")
+        .single();
+      if (createErr || !created) {
+        setStartingConvo(null);
+        return;
+      }
+      convoId = created.id;
+    }
+
+    // Build a ConversationRow and activate it
+    const convoRow: ConversationRow = {
+      id:              convoId,
+      user1_id:        a,
+      user2_id:        b,
+      last_message_at: found?.last_message_at ?? new Date().toISOString(),
+      other: {
+        id:     student.id,
+        name:   student.name,
+        avatar: student.avatar ?? "",
+        role:   "Estudiante",
+      },
+      lastPreview:  "",
+      lastSenderId: "",
+      unread:       0,
+    };
+
+    setConvos((prev) => {
+      const exists = prev.find((c) => c.id === convoId);
+      return exists ? prev : [convoRow, ...prev];
+    });
+    setActiveConvo(convoRow);
+    setLeftTab("convos");
+    setStartingConvo(null);
+  }, [user?.id]);
 
   // Fetch messages for active conversation
   const fetchMessages = useCallback(async (convoId: string) => {
@@ -305,7 +404,7 @@ export default function MessagesPage() {
     <PageLayout>
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
 
-        {/* ── Left pane: conversation list ── */}
+        {/* ── Left pane: conversation list (+ student directory for Colegio) ── */}
         <div className={`w-full md:w-80 lg:w-96 bg-white border-r border-slate-200/60 flex flex-col shrink-0 ${activeConvo ? "hidden md:flex" : "flex"}`}>
           <div className="p-4 border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2 mb-3">
@@ -316,17 +415,89 @@ export default function MessagesPage() {
                 </span>
               )}
             </div>
+
+            {/* Tab switcher — only for Colegio */}
+            {role === "Colegio" && (
+              <div className="flex rounded-xl bg-slate-100 p-0.5 mb-3">
+                <button
+                  onClick={() => setLeftTab("convos")}
+                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
+                    leftTab === "convos" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  Chats
+                </button>
+                <button
+                  onClick={() => setLeftTab("students")}
+                  className={`flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
+                    leftTab === "students" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  <Users size={12} /> Directorio
+                </button>
+              </div>
+            )}
+
+            {/* Search input */}
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                type="text" value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar conversación..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
-              />
+              {leftTab === "convos" ? (
+                <input
+                  type="text" value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar conversación..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                />
+              ) : (
+                <input
+                  type="text" value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  placeholder="Buscar estudiante..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                />
+              )}
             </div>
           </div>
 
+          {/* ── Student directory panel ── */}
+          {leftTab === "students" && role === "Colegio" && (
+            <div className="flex-1 overflow-y-auto thin-scrollbar divide-y divide-slate-100">
+              {loadingStudents && (
+                <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
+              )}
+              {!loadingStudents && students.filter((s) =>
+                s.name.toLowerCase().includes(studentSearch.toLowerCase())
+              ).length === 0 && (
+                <div className="text-center py-10 text-sm text-slate-400">No hay estudiantes.</div>
+              )}
+              {students
+                .filter((s) => s.name.toLowerCase().includes(studentSearch.toLowerCase()))
+                .map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => openStudentConvo(s)}
+                    disabled={startingConvo === s.id}
+                    className="w-full flex items-center gap-3 p-4 hover:bg-slate-50/80 transition-colors text-left disabled:opacity-60"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-sm font-bold text-cyan-700 shrink-0">
+                      {s.avatar
+                        ? <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-full object-cover" />
+                        : s.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
+                      <p className="text-xs text-slate-400 truncate">
+                        {[s.class_name, s.specialty].filter(Boolean).join(" · ") || "Estudiante"}
+                      </p>
+                    </div>
+                    {startingConvo === s.id && <Loader2 size={14} className="animate-spin text-cyan-500 shrink-0" />}
+                  </button>
+                ))}
+            </div>
+          )}
+
+          {/* ── Conversations list ── */}
+          {leftTab === "convos" && (
           <div className="flex-1 overflow-y-auto thin-scrollbar divide-y divide-slate-100">
             {loadingConvos && (
               <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
@@ -384,6 +555,7 @@ export default function MessagesPage() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         {/* ── Right pane: active conversation ── */}

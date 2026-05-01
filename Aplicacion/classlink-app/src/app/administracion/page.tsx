@@ -16,6 +16,7 @@ import {
   updateStudentProfile,
   upsertSchoolReport,
   validateStudentSkill,
+  editStudentBySchool,
 } from "@/app/actions/school";
 import { updateInternshipRequest } from "@/app/actions/company";
 import SmartImporter from "@/components/admin/SmartImporter";
@@ -34,6 +35,8 @@ interface DbStudent {
   specialty: string | null; grade: string | null;
   attendance: number | null; availability: string | null;
   soft_skills: string[] | null;
+  rut: string | null; gender: string | null;
+  cellphone: string | null; class_name: string | null; age: number | null;
 }
 
 interface DbInternshipRequest {
@@ -72,6 +75,11 @@ export default function AdministracionPage() {
   const [newStLastName,   setNewStLastName]   = useState("");
   const [newStEmail,      setNewStEmail]      = useState("");
   const [newStPassword,   setNewStPassword]   = useState("");
+  const [newStRut,        setNewStRut]        = useState("");
+  const [newStGender,     setNewStGender]     = useState("");
+  const [newStCellphone,  setNewStCellphone]  = useState("");
+  const [newStClassName,  setNewStClassName]  = useState("");
+  const [newStAge,        setNewStAge]        = useState<number | "">("");
   const [newStSpecialty,  setNewStSpecialty]  = useState("");
   const [newStGrade,      setNewStGrade]      = useState("");
   const [addStudentErr,   setAddStudentErr]   = useState<string | null>(null);
@@ -108,6 +116,18 @@ export default function AdministracionPage() {
   // ── Smart CSV importer result ─────────────────────────
   const [importerOk,      setImporterOk]      = useState<string | null>(null);
 
+  // ── Edit student modal (Epic 2 RBAC) ──────────────────
+  const [editingStudent, setEditingStudent]  = useState<DbStudent | null>(null);
+  const [editRut,        setEditRut]         = useState("");
+  const [editGender,     setEditGender]      = useState("");
+  const [editCellphone,  setEditCellphone]   = useState("");
+  const [editClassName,  setEditClassName]   = useState("");
+  const [editAge,        setEditAge]         = useState<number | "">("");
+  const [editSpecialty,  setEditSpecialty]   = useState("");
+  const [editGrade,      setEditGrade]       = useState("");
+  const [editSaving,     setEditSaving]      = useState(false);
+  const [editMsg,        setEditMsg]         = useState<{type:"ok"|"err"; text:string}|null>(null);
+
   // ── Data fetching ──────────────────────────────────────
 
   const fetchStudents = useCallback(async () => {
@@ -115,7 +135,7 @@ export default function AdministracionPage() {
     setStudentsLoading(true);
     const { data } = await supabase
       .from("profiles")
-      .select("id, name, email, avatar, specialty, grade, attendance, availability, soft_skills")
+      .select("id, name, email, avatar, specialty, grade, attendance, availability, soft_skills, rut, gender, cellphone, class_name, age")
       .eq("school_id", user.id)
       .eq("role", "Estudiante")
       .order("name");
@@ -169,6 +189,11 @@ export default function AdministracionPage() {
       lastName:     newStLastName,
       email:        newStEmail,
       tempPassword: newStPassword,
+      rut:          newStRut,
+      gender:       newStGender,
+      cellphone:    newStCellphone,
+      class_name:   newStClassName,
+      age:          Number(newStAge) || 16,
       specialty:    newStSpecialty || undefined,
       grade:        newStGrade || undefined,
     });
@@ -178,7 +203,9 @@ export default function AdministracionPage() {
     } else {
       setAddStudentOk(true);
       setNewStFirstName(""); setNewStLastName(""); setNewStEmail("");
-      setNewStPassword(""); setNewStSpecialty(""); setNewStGrade("");
+      setNewStPassword(""); setNewStRut(""); setNewStGender("");
+      setNewStCellphone(""); setNewStClassName(""); setNewStAge("");
+      setNewStSpecialty(""); setNewStGrade("");
       setTimeout(() => {
         setAddStudentOpen(false);
         setAddStudentOk(false);
@@ -296,6 +323,51 @@ export default function AdministracionPage() {
     setMgmtSaving(null);
     if ("error" in res && res.error) { setMgmtMsg({ type: "err", text: res.error }); return; }
     setMgmtMsg({ type: "ok", text: "Reporte guardado." });
+  };
+
+  const openEditModal = (s: DbStudent) => {
+    setEditingStudent(s);
+    setEditRut(s.rut ?? "");
+    setEditGender(s.gender ?? "");
+    setEditCellphone(s.cellphone ?? "");
+    setEditClassName(s.class_name ?? "");
+    setEditAge(s.age ?? "");
+    setEditSpecialty(s.specialty ?? "");
+    setEditGrade(s.grade ?? "");
+    setEditMsg(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingStudent) return;
+    setEditSaving(true); setEditMsg(null);
+    const res = await editStudentBySchool(editingStudent.id, {
+      rut:        editRut        || undefined,
+      gender:     editGender     || undefined,
+      cellphone:  editCellphone  || undefined,
+      class_name: editClassName  || undefined,
+      age:        editAge !== "" ? Number(editAge) : undefined,
+      specialty:  editSpecialty  || undefined,
+      grade:      editGrade      || undefined,
+    });
+    setEditSaving(false);
+    if ("error" in res && res.error) {
+      setEditMsg({ type: "err", text: res.error });
+    } else {
+      setEditMsg({ type: "ok", text: "Datos guardados correctamente." });
+      setDbStudents((prev) => prev.map((s) =>
+        s.id === editingStudent.id ? {
+          ...s,
+          rut:        editRut       || s.rut,
+          gender:     editGender    || s.gender,
+          cellphone:  editCellphone || s.cellphone,
+          class_name: editClassName || s.class_name,
+          age:        editAge !== "" ? Number(editAge) : s.age,
+          specialty:  editSpecialty || s.specialty,
+          grade:      editGrade     || s.grade,
+        } : s
+      ));
+      setTimeout(() => setEditingStudent(null), 1200);
+    }
   };
 
   const handleUpdateReq = async (reqId: string, status: "aprobado" | "rechazado") => {
@@ -482,7 +554,7 @@ export default function AdministracionPage() {
                               {s.availability}
                             </span>
                           )}
-                          <div className="flex gap-1.5">
+                          <div className="flex gap-1.5 flex-wrap">
                             <button
                               onClick={() => isManaging ? setManagingId(null) : openManageStudent(s)}
                               className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-colors ${
@@ -490,6 +562,13 @@ export default function AdministracionPage() {
                               }`}
                             >
                               {isManaging ? "Cerrar" : "Gestionar"}
+                            </button>
+                            {/* Edit mandatory fields (Epic 2) */}
+                            <button
+                              onClick={() => openEditModal(s)}
+                              className="text-[10px] font-bold px-2.5 py-1 bg-cyan-50 text-cyan-600 hover:bg-cyan-100 rounded-lg transition-colors"
+                            >
+                              Editar datos
                             </button>
                             <button
                               onClick={() => handleGraduate(s.id)}
@@ -1027,6 +1106,61 @@ export default function AdministracionPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">RUT *</label>
+              <input
+                value={newStRut}
+                onChange={(e) => setNewStRut(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                placeholder="Ej: 12.345.678-9"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Género *</label>
+              <select
+                value={newStGender}
+                onChange={(e) => setNewStGender(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 outline-none bg-white"
+              >
+                <option value="">Seleccionar…</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+                <option value="Prefiero no decir">Prefiero no decir</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Celular *</label>
+              <input
+                value={newStCellphone}
+                onChange={(e) => setNewStCellphone(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                placeholder="+56912345678"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Edad *</label>
+              <input
+                type="number" min={10} max={100}
+                value={newStAge}
+                onChange={(e) => setNewStAge(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+                placeholder="17"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Clase / Curso *</label>
+            <input
+              value={newStClassName}
+              onChange={(e) => setNewStClassName(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+              placeholder="Ej: 3°A Mecatrónica"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Especialidad</label>
               <select
                 value={newStSpecialty}
@@ -1051,10 +1185,122 @@ export default function AdministracionPage() {
           </div>
           <button
             onClick={handleAddStudent}
-            disabled={addStudentBusy || !newStFirstName.trim() || !newStLastName.trim() || !newStEmail.trim() || !newStPassword.trim()}
+            disabled={addStudentBusy || !newStFirstName.trim() || !newStLastName.trim() || !newStEmail.trim() || !newStPassword.trim() || !newStRut.trim() || !newStGender || !newStCellphone.trim() || !newStClassName.trim() || newStAge === ""}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
           >
             {addStudentBusy ? <><Loader2 size={16} className="animate-spin" /> Creando…</> : "Crear Estudiante"}
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Edit Student Modal (Epic 2 — RBAC backfill) ── */}
+      <Modal
+        open={!!editingStudent}
+        onClose={() => setEditingStudent(null)}
+        title={`Editar datos de ${editingStudent?.name ?? ""}`}
+      >
+        <div className="space-y-4">
+          {editMsg && (
+            <div className={`text-sm px-3 py-2 rounded-xl border flex items-center gap-2 ${
+              editMsg.type === "ok"
+                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                : "text-red-600 bg-red-50 border-red-200"
+            }`}>
+              {editMsg.type === "ok" ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+              {editMsg.text}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">RUT</label>
+              <input
+                value={editRut}
+                onChange={(e) => setEditRut(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                placeholder="Ej: 12.345.678-9"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Género</label>
+              <select
+                value={editGender}
+                onChange={(e) => setEditGender(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
+              >
+                <option value="">Seleccionar…</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+                <option value="Prefiero no decir">Prefiero no decir</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Celular</label>
+              <input
+                value={editCellphone}
+                onChange={(e) => setEditCellphone(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                placeholder="Ej: +56912345678"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Edad</label>
+              <input
+                type="number"
+                min={10} max={100}
+                value={editAge}
+                onChange={(e) => setEditAge(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                placeholder="Ej: 17"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Clase / Curso</label>
+            <input
+              value={editClassName}
+              onChange={(e) => setEditClassName(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+              placeholder="Ej: 3°A Mecatrónica"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Especialidad</label>
+              <select
+                value={editSpecialty}
+                onChange={(e) => setEditSpecialty(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none bg-white"
+              >
+                <option value="">Sin cambios</option>
+                {TP_SPECIALTIES.map((sp) => (
+                  <option key={sp} value={sp}>{sp}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block">Nivel / Grado</label>
+              <input
+                value={editGrade}
+                onChange={(e) => setEditGrade(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-cyan-200 outline-none"
+                placeholder="Ej: 3er año"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveEdit}
+            disabled={editSaving}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-40 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            {editSaving ? <><Loader2 size={16} className="animate-spin" /> Guardando…</> : "Guardar cambios"}
           </button>
         </div>
       </Modal>

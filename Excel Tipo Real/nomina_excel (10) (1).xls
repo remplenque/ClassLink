@@ -1,0 +1,4106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>.:SIGE:. Ministerio de Educación</title>
+    <meta content="text/html;charset=iso-8859-1" http-equiv="Cache-Control" />
+    <meta content="no-cache" http-equiv="Pragma" />
+    <meta content="-1" http-equiv="Expires" />
+    <meta content="Mineduc - Informatica" name="Author" />
+    <link type="image/ico" href="https://staticv2.mineduc.cl/img/favicon.ico" rel="icon" />
+    <link type="../image/ico" href="favicon.ico" rel="icon" />
+  </head>
+  <body>
+    <br />
+    <br />
+    <table width="100%">
+      <thead>
+        <tr>
+          <th scope="col">Año</th>
+          <th scope="col">RBD</th>
+          <th scope="col">Cod Tipo Enseñanza</th>
+          <th scope="col">Cod Grado</th>
+          <th scope="col">Desc Grado</th>
+          <th scope="col">Letra Curso</th>
+          <th scope="col">Run</th>
+          <th scope="col">Dígito Ver.</th>
+          <th scope="col">Genero</th>
+          <th scope="col">Nombres</th>
+          <th scope="col">Apellido Paterno</th>
+          <th scope="col">Apellido Materno</th>
+          <th scope="col">Dirección</th>
+          <th scope="col">Comuna Residencia</th>
+          <th scope="col">Código Comuna Residencia</th>
+          <th scope="col">Email</th>
+          <th scope="col">Telefono</th>
+          <th scope="col">Celular</th>
+          <th scope="col">Fecha Nacimiento</th>
+          <th scope="col">Código Etnia</th>
+          <th scope="col">Fecha Incorporación Curso</th>
+          <th scope="col">Fecha Retiro</th>
+          <th scope="col">%Asistenca</th>
+          <th scope="col">Promedio Final</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25399679</td>
+          <td>K</td>
+          <td>M</td>
+          <td>GASTON ALEJANDRO</td>
+          <td>NUÑEZ</td>
+          <td>ESPINOZA</td>
+          <td>CALLE 1</td>
+          <td>LA CISTERNA</td>
+          <td>13109</td>
+          <td></td>
+          <td></td>
+          <td>99955105</td>
+          <td>1974-07-09</td>
+          <td>11</td>
+          <td>2026-03-26</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26173143</td>
+          <td>6</td>
+          <td>F</td>
+          <td>EVODIE</td>
+          <td>JEROME</td>
+          <td>JEAN BAPTISTE</td>
+          <td>PASAJE BUZETA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>76494542</td>
+          <td>1989-06-08</td>
+          <td>11</td>
+          <td>2026-04-01</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25594983</td>
+          <td>7</td>
+          <td>M</td>
+          <td>PIERRE-ANDRE</td>
+          <td>CHARLES</td>
+          <td></td>
+          <td>PASAJE 14 SUR 2677</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>20385511</td>
+          <td>1983-04-10</td>
+          <td>11</td>
+          <td>2026-03-27</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>22921597</td>
+          <td>3</td>
+          <td>M</td>
+          <td>LUCAS MATÍAS</td>
+          <td>TAPIA</td>
+          <td>HENRÍQUEZ</td>
+          <td>CORONA AUSTRAL</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>5645713</td>
+          <td></td>
+          <td>2009-01-08</td>
+          <td>0</td>
+          <td>2026-03-26</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>11869870</td>
+          <td>3</td>
+          <td>F</td>
+          <td>AURORA AUDILIA</td>
+          <td>MUÑOZ</td>
+          <td>ROSALES</td>
+          <td>PASAJE 6 PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>59011141</td>
+          <td>1970-05-20</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>22986687</td>
+          <td>7</td>
+          <td>F</td>
+          <td>MARTINA IGNACIA</td>
+          <td>CORNEJO</td>
+          <td>LAGOS</td>
+          <td>18 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2009-03-30</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>18513778</td>
+          <td>3</td>
+          <td>F</td>
+          <td>CAROLINA ANDREA</td>
+          <td>PIUTRÍN</td>
+          <td>CALVIL</td>
+          <td>VALENZUELA LLANOS</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>96456151</td>
+          <td>1993-07-17</td>
+          <td>0</td>
+          <td>2026-03-13</td>
+          <td>2026-03-16</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>23278305</td>
+          <td>2</td>
+          <td>M</td>
+          <td>ORIEL</td>
+          <td>SUFFRARD</td>
+          <td></td>
+          <td>PIO XII</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>21555623</td>
+          <td>1973-09-26</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25513097</td>
+          <td>8</td>
+          <td>M</td>
+          <td>KENOLD</td>
+          <td>SALOMON</td>
+          <td></td>
+          <td>PASAJE 15 SUR 2684</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>91011816</td>
+          <td>1987-05-14</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>13284256</td>
+          <td>6</td>
+          <td>F</td>
+          <td>ERIKA LAVINIA</td>
+          <td>OYANEDEL</td>
+          <td>MIRANDA</td>
+          <td>SALVADOR ALLENDE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>87048721</td>
+          <td>1971-02-16</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>13491367</td>
+          <td>3</td>
+          <td>M</td>
+          <td>ALEXIS ORLANDO</td>
+          <td>HERMOSILLA</td>
+          <td>ESCALONA</td>
+          <td>19 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>32633459</td>
+          <td>1974-10-25</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25599319</td>
+          <td>4</td>
+          <td>F</td>
+          <td>ROSELINE</td>
+          <td>BRENUS</td>
+          <td></td>
+          <td>6 PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>33595620</td>
+          <td>1991-02-08</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25619608</td>
+          <td>5</td>
+          <td>M</td>
+          <td>JONAS</td>
+          <td>GUERRIER</td>
+          <td></td>
+          <td>PASAJE 8 SUR 2388</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>36933026</td>
+          <td>1987-12-31</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25940813</td>
+          <td>K</td>
+          <td>M</td>
+          <td>ALIX</td>
+          <td>GERARD</td>
+          <td></td>
+          <td>MARACAIBO 4699</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>61516286</td>
+          <td>1986-04-03</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26055667</td>
+          <td>3</td>
+          <td>M</td>
+          <td>MOLIERE</td>
+          <td>PAUL</td>
+          <td></td>
+          <td>PASAJE PUERTO 4</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>37590939</td>
+          <td>1985-07-13</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26081176</td>
+          <td>2</td>
+          <td>F</td>
+          <td>BEBYE</td>
+          <td>DESIR</td>
+          <td></td>
+          <td>COOPERACIÓN</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>49167344</td>
+          <td>1987-10-31</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26296004</td>
+          <td>8</td>
+          <td>F</td>
+          <td>MARIE BETHIE</td>
+          <td>EPRIME</td>
+          <td></td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>62689004</td>
+          <td>1984-03-11</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26353119</td>
+          <td>1</td>
+          <td>F</td>
+          <td>MICHELANDE</td>
+          <td>FELIX</td>
+          <td></td>
+          <td>BUENAVENTURA 3034</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1992-01-29</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26875838</td>
+          <td>0</td>
+          <td>F</td>
+          <td>CILEMENE</td>
+          <td>ORELUS</td>
+          <td></td>
+          <td>PASAJE 15 SUR 2684</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>22344466</td>
+          <td>1995-11-01</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>27430701</td>
+          <td>3</td>
+          <td>F</td>
+          <td>LOURDMIE</td>
+          <td>JOSEPH</td>
+          <td></td>
+          <td>PLANO REGULADOR 5876</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>74923176</td>
+          <td>1999-05-04</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25999457</td>
+          <td>8</td>
+          <td>F</td>
+          <td>LOVENITE</td>
+          <td>ADONIUS</td>
+          <td></td>
+          <td>CALLE JOSE SIMON CAÑAS 4086</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>68676695</td>
+          <td>1994-06-25</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>28541432</td>
+          <td>6</td>
+          <td>F</td>
+          <td>LOURDE</td>
+          <td>ALEXIS</td>
+          <td></td>
+          <td>PASAJE 21 SUR 6811</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>39236980</td>
+          <td>2006-07-01</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>28703589</td>
+          <td>6</td>
+          <td>M</td>
+          <td>STANLEY</td>
+          <td>ROME</td>
+          <td></td>
+          <td>6 PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>26459148</td>
+          <td>2007-08-09</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>28989590</td>
+          <td>6</td>
+          <td>F</td>
+          <td>LOUTHIA</td>
+          <td>JEAN</td>
+          <td>PIERRE</td>
+          <td>COOPERACIÓN 6341</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>35837831</td>
+          <td>1997-07-23</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>23636608</td>
+          <td>1</td>
+          <td>F</td>
+          <td>BERTHA</td>
+          <td>PREVIL</td>
+          <td>JASMIN</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1974-05-28</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>19187437</td>
+          <td>4</td>
+          <td>M</td>
+          <td>GERVACIO ANTONIO</td>
+          <td>ORTEGA</td>
+          <td>VILLAGRA</td>
+          <td>PASAJE 6 PONIENTE 7946</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1995-05-11</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>22741420</td>
+          <td>0</td>
+          <td>M</td>
+          <td>JOAQUÍN ANTONIO</td>
+          <td>ARAVENA</td>
+          <td>ROJAS</td>
+          <td>AV PADRE HURTADO</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>25644561</td>
+          <td></td>
+          <td>2008-06-08</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>10610980</td>
+          <td>K</td>
+          <td>M</td>
+          <td>HUGO SEGUNDO</td>
+          <td>TORRES</td>
+          <td>BURGOS</td>
+          <td>ACAPULCO 5304</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>81672427</td>
+          <td>1972-09-20</td>
+          <td>11</td>
+          <td>2026-03-09</td>
+          <td>2026-03-09</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>10231072</td>
+          <td>1</td>
+          <td>M</td>
+          <td>MANUEL JESÚS</td>
+          <td>FIGUEROA</td>
+          <td>BRAVO</td>
+          <td>ARTURO ALESSANDRI 6481</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>57323530</td>
+          <td>1963-12-20</td>
+          <td>11</td>
+          <td>2026-04-01</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>25888120</td>
+          <td>6</td>
+          <td>F</td>
+          <td>MARIE MONIDE</td>
+          <td>LALIME</td>
+          <td></td>
+          <td>FERROVIARIA</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>79370519</td>
+          <td>1972-03-12</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>26262625</td>
+          <td>3</td>
+          <td>F</td>
+          <td>FILONISE</td>
+          <td>CENOBLE</td>
+          <td></td>
+          <td></td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1996-12-17</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>23047090</td>
+          <td>1</td>
+          <td>F</td>
+          <td>CONSTANSA ANAIS</td>
+          <td>GODOY</td>
+          <td>CONTRERAS</td>
+          <td>2 PONIENTE</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td>72650782</td>
+          <td></td>
+          <td>2009-06-10</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>A</td>
+          <td>19417893</td>
+          <td>K</td>
+          <td>F</td>
+          <td>STEPHANIE CRISTAL</td>
+          <td>ARAYA</td>
+          <td>PEÑA</td>
+          <td>HIMALAYA 14332</td>
+          <td>SAN BERNARDO</td>
+          <td>13401</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1991-05-14</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>100678448</td>
+          <td>4</td>
+          <td>M</td>
+          <td>JHONATAN</td>
+          <td>ALGARAÑAZ</td>
+          <td>ROJAS</td>
+          <td></td>
+          <td>SANTIAGO</td>
+          <td>13101</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2009-04-16</td>
+          <td>0</td>
+          <td>2026-03-10</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>26110920</td>
+          <td>4</td>
+          <td>F</td>
+          <td>MARIE-ANGE</td>
+          <td>ESTIVERNE</td>
+          <td></td>
+          <td>CALLE TEMUCO 1835</td>
+          <td>ESTACIÓN CENTRAL</td>
+          <td>13106</td>
+          <td></td>
+          <td></td>
+          <td>36747682</td>
+          <td>1976-08-04</td>
+          <td>11</td>
+          <td>2026-03-29</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>16150396</td>
+          <td>7</td>
+          <td>M</td>
+          <td>RICARDO ENRIQUE</td>
+          <td>SÁNCHEZ</td>
+          <td>CASTRO</td>
+          <td>LEBRELES 03552 BLOC 6 DPTO 12</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td>DFONCASTO316@GMAIL.COM</td>
+          <td></td>
+          <td>94740119</td>
+          <td>1985-09-02</td>
+          <td>0</td>
+          <td>2026-03-11</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>21650534</td>
+          <td>4</td>
+          <td>F</td>
+          <td>PALOMA CONSTANZA</td>
+          <td>GODOY</td>
+          <td>GUTIÉRREZ</td>
+          <td>20 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>5641674</td>
+          <td>79844769</td>
+          <td>2004-08-27</td>
+          <td>0</td>
+          <td>2026-03-13</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>26423694</td>
+          <td>0</td>
+          <td>F</td>
+          <td>EDLINE</td>
+          <td>JEAN</td>
+          <td></td>
+          <td>GIL DE CASTRO 3618 DEPTO 18</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>67414254</td>
+          <td>1990-11-18</td>
+          <td>11</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>28134136</td>
+          <td>7</td>
+          <td>F</td>
+          <td>MALETHA</td>
+          <td>SOURY</td>
+          <td></td>
+          <td>GIL DE CASTRO 3527 DEPTO 18</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>45491999</td>
+          <td>1998-04-06</td>
+          <td>11</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>15476900</td>
+          <td>5</td>
+          <td>F</td>
+          <td>MARCELA ELISA</td>
+          <td>ROA</td>
+          <td>SANDOVAL</td>
+          <td>FRATERNAL 3760</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>30629042</td>
+          <td>1983-01-26</td>
+          <td>11</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>21882793</td>
+          <td>4</td>
+          <td>M</td>
+          <td>BASTIÁN AMARO</td>
+          <td>CEA</td>
+          <td>VALENZUELA</td>
+          <td>PASAJE SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>931702195</td>
+          <td>76706971</td>
+          <td>2005-07-10</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>28264862</td>
+          <td>8</td>
+          <td>M</td>
+          <td>FARENDY</td>
+          <td>BOGELIN</td>
+          <td></td>
+          <td>3 ORIENTE 13116</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>922473450</td>
+          <td>22473450</td>
+          <td>2010-01-29</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>100843482</td>
+          <td>0</td>
+          <td>M</td>
+          <td>ANDY EMERSON</td>
+          <td>VILLEGAS</td>
+          <td>VELIZ</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>56430942</td>
+          <td>2006-04-06</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>100757440</td>
+          <td>8</td>
+          <td>M</td>
+          <td>VEDETTE</td>
+          <td>DONAUS</td>
+          <td></td>
+          <td>TRACCION 6477</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>45121059</td>
+          <td>1995-12-13</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>19191124</td>
+          <td>5</td>
+          <td>M</td>
+          <td>MOISÉS CUPERTINO</td>
+          <td>REYES</td>
+          <td>VEGA</td>
+          <td>GUADALUPE 6993</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>5646122</td>
+          <td></td>
+          <td>1996-06-19</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>18512401</td>
+          <td>0</td>
+          <td>F</td>
+          <td>YESSENIA MARISOL</td>
+          <td>SAAVEDRA</td>
+          <td>ARAVENA</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1993-04-26</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>21717785</td>
+          <td>5</td>
+          <td>M</td>
+          <td>FRANCISCO JAVIER</td>
+          <td>RIVEROS</td>
+          <td>CASTRO</td>
+          <td>PASAJE 16 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>225648760</td>
+          <td></td>
+          <td>2004-11-15</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>100820997</td>
+          <td>5</td>
+          <td>M</td>
+          <td>ISRAEL JOSE</td>
+          <td>FERNANDEZ</td>
+          <td>SUBERO</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>29798540</td>
+          <td>2010-04-15</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>16738381</td>
+          <td>5</td>
+          <td>F</td>
+          <td>PILAR VIRGINIA</td>
+          <td>ALTAMIRANO</td>
+          <td>ALVARADO</td>
+          <td>AV. EDUARDO FREI MONTALBA BLOCK 13</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>26835659</td>
+          <td>1987-11-30</td>
+          <td>11</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>12103652</td>
+          <td>5</td>
+          <td>F</td>
+          <td>LORENA KARINA</td>
+          <td>LILLO</td>
+          <td>MORALES</td>
+          <td>PASAJE CALBUCO</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>95259106</td>
+          <td>1969-06-09</td>
+          <td>11</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>10610980</td>
+          <td>K</td>
+          <td>M</td>
+          <td>HUGO SEGUNDO</td>
+          <td>TORRES</td>
+          <td>BURGOS</td>
+          <td>ACAPULCO 5304</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>81672427</td>
+          <td>1972-09-20</td>
+          <td>11</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>24840662</td>
+          <td>3</td>
+          <td>M</td>
+          <td>PHANIEL</td>
+          <td>FRANCOIS</td>
+          <td></td>
+          <td>21 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1988-12-28</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>17279099</td>
+          <td>2</td>
+          <td>F</td>
+          <td>JACQUELINE CAROLINE NICOLE</td>
+          <td>ARANEDA</td>
+          <td>LÓPEZ</td>
+          <td>PASAJE 15 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>21973374</td>
+          <td>1989-05-25</td>
+          <td>11</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>17282779</td>
+          <td>9</td>
+          <td>M</td>
+          <td>DANIEL ALEJANDRO</td>
+          <td>SOTO</td>
+          <td>ESPINOZA</td>
+          <td>17 SUR 3967</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1990-02-27</td>
+          <td>11</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>23244758</td>
+          <td>3</td>
+          <td>M</td>
+          <td>LUCAS SAMUEL</td>
+          <td>MOYA</td>
+          <td>MERY</td>
+          <td>PIO XII</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td>LUCIAGONZALEZSALINAS1@GMAIL.COM</td>
+          <td></td>
+          <td>59763024</td>
+          <td>2010-02-06</td>
+          <td>0</td>
+          <td>2026-04-06</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>22726017</td>
+          <td>3</td>
+          <td>M</td>
+          <td>KILIAN BENJAMÍN</td>
+          <td>SOTO</td>
+          <td>BUSTOS</td>
+          <td>DON RAMON</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>28716069</td>
+          <td>96543902</td>
+          <td>2008-05-21</td>
+          <td>0</td>
+          <td>2026-04-06</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>12288430</td>
+          <td>9</td>
+          <td>F</td>
+          <td>ANA LUISA</td>
+          <td>SALAS</td>
+          <td>REGLE</td>
+          <td>PASAJE 10 SUR 5253</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>40805667</td>
+          <td>1972-08-18</td>
+          <td>11</td>
+          <td>2026-04-06</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>26643376</td>
+          <td>K</td>
+          <td>M</td>
+          <td>JEAN MOISE</td>
+          <td>BROUARD</td>
+          <td></td>
+          <td>OLGA READY</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>35237064</td>
+          <td>1985-09-05</td>
+          <td>11</td>
+          <td>2026-04-20</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>17876033</td>
+          <td>5</td>
+          <td>M</td>
+          <td>ABRAHAM JACOBO</td>
+          <td>LEIVA</td>
+          <td>PÉREZ</td>
+          <td></td>
+          <td>LO PRADO</td>
+          <td>13117</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1991-03-23</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>19566759</td>
+          <td>4</td>
+          <td>F</td>
+          <td>CHAROL DENISSE</td>
+          <td>ESPÍNDOLA</td>
+          <td>VILLAR</td>
+          <td></td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1997-06-15</td>
+          <td>0</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>22297545</td>
+          <td>K</td>
+          <td>M</td>
+          <td>BENJAMÍN ESTEBAN</td>
+          <td>HERNÁNDEZ</td>
+          <td>GUTIÉRREZ</td>
+          <td>REINA VICTORIA</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td>5170262</td>
+          <td>94510068</td>
+          <td>2006-12-31</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>16724608</td>
+          <td>7</td>
+          <td>F</td>
+          <td>VALESKA ALEJANDRA</td>
+          <td>GÁLVEZ</td>
+          <td>RIVEROS</td>
+          <td>PASAJE 3 PONIENT E</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>42290162</td>
+          <td>1987-09-21</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>27104141</td>
+          <td>1</td>
+          <td>F</td>
+          <td>JUANA</td>
+          <td>SANCHEZ</td>
+          <td>OGANDO</td>
+          <td>PASAJE 2 PONIENTE 6108</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>37887685</td>
+          <td>1984-05-16</td>
+          <td>11</td>
+          <td>2026-03-10</td>
+          <td>2026-03-29</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>23258078</td>
+          <td>K</td>
+          <td>F</td>
+          <td>YISLEI CONSTANZA</td>
+          <td>CUEVAS</td>
+          <td>GUTIÉRREZ</td>
+          <td>3 PONIENTE 6155</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2010-02-15</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>16093234</td>
+          <td>1</td>
+          <td>M</td>
+          <td>GONZALO ANDRÉS</td>
+          <td>RAMÍREZ</td>
+          <td>ORTEGA</td>
+          <td></td>
+          <td>COLINA</td>
+          <td>13301</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1985-10-19</td>
+          <td>0</td>
+          <td>2026-03-04</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>19632063</td>
+          <td>6</td>
+          <td>F</td>
+          <td>CARMEN GLORIA</td>
+          <td>AGUAYO</td>
+          <td>CERDA</td>
+          <td>ANTONIO VARAS 936</td>
+          <td>SAN BERNARDO</td>
+          <td>13401</td>
+          <td></td>
+          <td>8596258</td>
+          <td>83196030</td>
+          <td>1996-11-30</td>
+          <td>0</td>
+          <td>2026-03-10</td>
+          <td>2026-03-26</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>1</td>
+          <td>1er nivel (1° y 2° medio)</td>
+          <td>B</td>
+          <td>22934790</td>
+          <td>K</td>
+          <td>M</td>
+          <td>JOHAN EUGENIO</td>
+          <td>AHUMADA</td>
+          <td>VALDEBENITO</td>
+          <td>PJE RAFAEL SOTO MAYOR B 1130 D 34</td>
+          <td>SAN BERNARDO</td>
+          <td>13401</td>
+          <td></td>
+          <td></td>
+          <td>50825061</td>
+          <td>2009-01-29</td>
+          <td>0</td>
+          <td>2026-04-01</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>26624322</td>
+          <td>7</td>
+          <td>F</td>
+          <td>FREDELINE</td>
+          <td>PAUL JEAN LOUIS</td>
+          <td></td>
+          <td>INFANTE</td>
+          <td>CONSTITUCIÓN</td>
+          <td>7102</td>
+          <td></td>
+          <td>973731818</td>
+          <td></td>
+          <td>1988-05-03</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>10141415</td>
+          <td>9</td>
+          <td>F</td>
+          <td>NURY TRINIDAD</td>
+          <td>OLAVE</td>
+          <td>TORRES</td>
+          <td>19 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>41328694</td>
+          <td>1966-08-04</td>
+          <td>11</td>
+          <td>2026-03-11</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>18513778</td>
+          <td>3</td>
+          <td>F</td>
+          <td>CAROLINA ANDREA</td>
+          <td>PIUTRÍN</td>
+          <td>CALVIL</td>
+          <td>VALENZUELA LLANOS</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>96456151</td>
+          <td>1993-07-17</td>
+          <td>0</td>
+          <td>2026-03-17</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>22430714</td>
+          <td>4</td>
+          <td>F</td>
+          <td>ANTONELLA CATALINA</td>
+          <td>GODOY</td>
+          <td>VALLE</td>
+          <td>ACAPULCO 4492</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>5647842</td>
+          <td></td>
+          <td>2007-06-26</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>100621485</td>
+          <td>8</td>
+          <td>M</td>
+          <td>JUAN PABLO JOSUE</td>
+          <td>CARRERO</td>
+          <td>FLORES</td>
+          <td>URANIO</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>64556132</td>
+          <td>2009-07-20</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>100760449</td>
+          <td>8</td>
+          <td>M</td>
+          <td>YURIS JOVANI</td>
+          <td>ZAPATA</td>
+          <td>NAZARENO</td>
+          <td>AVENIDA CENTRAL 3518 DEPTO 31</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>94469864</td>
+          <td>1988-05-13</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>100809924</td>
+          <td>K</td>
+          <td>M</td>
+          <td>JUAN FELIPE</td>
+          <td>CACERES</td>
+          <td>MENESES</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>28355158</td>
+          <td>2005-07-27</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>11883301</td>
+          <td>5</td>
+          <td>F</td>
+          <td>MILA DEL CARMEN</td>
+          <td>ROJAS</td>
+          <td>BUSTAMANTE</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1971-05-16</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>12042106</td>
+          <td>9</td>
+          <td>F</td>
+          <td>SARA LUISA DEL CARMEN</td>
+          <td>OLIVA</td>
+          <td>YOUT</td>
+          <td>PASAJE 1 PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>34276749</td>
+          <td>1964-09-14</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>22848069</td>
+          <td>K</td>
+          <td>M</td>
+          <td>MAXIMILIANO ALEXANDER ANTONIO</td>
+          <td>SALAMANCA</td>
+          <td>JOFRÉ</td>
+          <td>19 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>225644236</td>
+          <td></td>
+          <td>2008-10-03</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>23190227</td>
+          <td>9</td>
+          <td>F</td>
+          <td>CARLA NAVESCA</td>
+          <td>DAUVERGNE</td>
+          <td>CONTRERAS</td>
+          <td>JUAN FRANCISCO GONZALEZ</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>86362294</td>
+          <td>98540099</td>
+          <td>2009-11-26</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>25453369</td>
+          <td>6</td>
+          <td>F</td>
+          <td>CLAIRECIA</td>
+          <td>DERIYALD</td>
+          <td></td>
+          <td>SANTA ANITA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>45222810</td>
+          <td>1977-04-25</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>25615151</td>
+          <td>0</td>
+          <td>F</td>
+          <td>ANOSE</td>
+          <td>FRANCOIS</td>
+          <td>ETIENNE</td>
+          <td>21 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1987-01-03</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>25950563</td>
+          <td>1</td>
+          <td>F</td>
+          <td>YAIDEMI</td>
+          <td>DIAZ</td>
+          <td>ROSALES</td>
+          <td>BUENAVENTURA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>0</td>
+          <td>36786173</td>
+          <td>1990-01-04</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>26044747</td>
+          <td>5</td>
+          <td>F</td>
+          <td>DONESE</td>
+          <td>MERISIER</td>
+          <td></td>
+          <td>PASAJE PINTO 4</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>66307291</td>
+          <td>1994-05-27</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>26211284</td>
+          <td>5</td>
+          <td>F</td>
+          <td>ROSE-MARIE</td>
+          <td>SILENCIEUX</td>
+          <td></td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1989-06-15</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>26309975</td>
+          <td>3</td>
+          <td>M</td>
+          <td>MERCIDIEU</td>
+          <td>PIERRE-LOUIS</td>
+          <td></td>
+          <td>PASAJE 10 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>34212990</td>
+          <td>1990-06-22</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>9096005</td>
+          <td>9</td>
+          <td>M</td>
+          <td>JUAN PATRICIO</td>
+          <td>SEGOVIA</td>
+          <td>VERA</td>
+          <td>PASAJE 6 ORIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>78474546</td>
+          <td>1964-07-23</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>13088207</td>
+          <td>2</td>
+          <td>F</td>
+          <td>WENDY YESENIA</td>
+          <td>OLIVA</td>
+          <td>YOUT</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1974-04-27</td>
+          <td>0</td>
+          <td>2026-03-02</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>22163466</td>
+          <td>7</td>
+          <td>F</td>
+          <td>JACQUELINE ISABEL</td>
+          <td>OYARCE</td>
+          <td>VELASCO</td>
+          <td>CARIBE Nº 6280</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2006-07-11</td>
+          <td>0</td>
+          <td>2026-03-02</td>
+          <td>2026-03-26</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>22818407</td>
+          <td>1</td>
+          <td>F</td>
+          <td>ANGELA VALERIA POLETTE</td>
+          <td>RIQUELME</td>
+          <td>RIQUELME</td>
+          <td>14 SUR 5431</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>42558761</td>
+          <td>2008-09-11</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>11314408</td>
+          <td>4</td>
+          <td>M</td>
+          <td>RICARDO DARWIN</td>
+          <td>PÉREZ</td>
+          <td>PÉREZ</td>
+          <td>AVDA CLOTARIO BLEST</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>93039481</td>
+          <td>1967-11-28</td>
+          <td>11</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>22267617</td>
+          <td>7</td>
+          <td>F</td>
+          <td>AYLINE VALENTINA</td>
+          <td>VEGA</td>
+          <td>MANRÍQUEZ</td>
+          <td>PASAJE 5 ORIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>67279581</td>
+          <td>2006-11-23</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>8408742</td>
+          <td>4</td>
+          <td>M</td>
+          <td>CARLOS ENRIQUE</td>
+          <td>ANDRADE</td>
+          <td>SESSAREGO</td>
+          <td>PASAJE 4 SUR 03199</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>75306372</td>
+          <td>1972-04-10</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>27395503</td>
+          <td>8</td>
+          <td>M</td>
+          <td>RODRIGO</td>
+          <td>SAAVEDRA</td>
+          <td>BARRIONUEVO</td>
+          <td>SANTA ANITA 7 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>64582173</td>
+          <td>2001-05-12</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>100755112</td>
+          <td>2</td>
+          <td>F</td>
+          <td>YURLY KATERINE</td>
+          <td>AYALA</td>
+          <td>RINCON</td>
+          <td></td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1996-01-03</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>A</td>
+          <td>28268689</td>
+          <td>9</td>
+          <td>M</td>
+          <td>JUAN GABRIEL</td>
+          <td>LEDOUE</td>
+          <td></td>
+          <td>UNIÓN FERROVIARIA 3467</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>20821575</td>
+          <td>2008-12-06</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>21483065</td>
+          <td>5</td>
+          <td>F</td>
+          <td>ANA BELÉN</td>
+          <td>BRAVO</td>
+          <td>YÁÑEZ</td>
+          <td>LAS TORRES 195, DEPTO L42</td>
+          <td>ESTACIÓN CENTRAL</td>
+          <td>13106</td>
+          <td>ANABELENBRAVOYANEZ3@GMAIL.COM</td>
+          <td></td>
+          <td>76566551</td>
+          <td>2004-01-09</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>18514622</td>
+          <td>7</td>
+          <td>M</td>
+          <td>JACOB ELÍAS</td>
+          <td>PÉREZ</td>
+          <td>NÚÑEZ</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1993-07-28</td>
+          <td>0</td>
+          <td>2026-03-31</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>16667937</td>
+          <td>0</td>
+          <td>M</td>
+          <td>GIOVANNI FRANCESCO</td>
+          <td>GUTIÉRREZ</td>
+          <td>PALAVECINO</td>
+          <td>PASAJE 19 SUR 3855</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>85423574</td>
+          <td>1988-02-05</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>17662398</td>
+          <td>5</td>
+          <td>F</td>
+          <td>CAMILA PAULETTE</td>
+          <td>VÁSQUEZ</td>
+          <td>NEIRA</td>
+          <td>PASAJE 3 PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>49681342</td>
+          <td>1990-08-16</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>17667899</td>
+          <td>2</td>
+          <td>F</td>
+          <td>PATRICIA NICOLE</td>
+          <td>GONZÁLEZ</td>
+          <td>MANSILLA</td>
+          <td>AVENIDA CENTRAL 7634</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>40369937</td>
+          <td>1991-07-16</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>20591130</td>
+          <td>8</td>
+          <td>M</td>
+          <td>SERGIO NICOLÁS</td>
+          <td>RIVERA</td>
+          <td>GONZÁLEZ</td>
+          <td>LA HABANA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>25644006</td>
+          <td>54857279</td>
+          <td>2000-10-02</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>21792883</td>
+          <td>4</td>
+          <td>M</td>
+          <td>ISAIAS FERNANDO</td>
+          <td>MANRÍQUEZ</td>
+          <td>JARA</td>
+          <td>3 PONIENTE 7596</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>86132937</td>
+          <td>2005-03-08</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22287541</td>
+          <td>2</td>
+          <td>F</td>
+          <td>IGNACIA ALONDRA</td>
+          <td>CUEVAS</td>
+          <td>SOTO</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2006-12-20</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>26200663</td>
+          <td>8</td>
+          <td>F</td>
+          <td>ERLA</td>
+          <td>DACHOUTE</td>
+          <td></td>
+          <td>PASAJE 3 ORIENTE 2747</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>22473450</td>
+          <td>1986-04-12</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22188496</td>
+          <td>5</td>
+          <td>F</td>
+          <td>GRESIA VICTORIA MARGARITA</td>
+          <td>LAGOS</td>
+          <td>OLAVARRÍA</td>
+          <td>PIO XII</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>26172132</td>
+          <td>2006-08-03</td>
+          <td>0</td>
+          <td>2026-03-02</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>15452453</td>
+          <td>3</td>
+          <td>F</td>
+          <td>MARCELA ANGÉLICA</td>
+          <td>AROS</td>
+          <td>OLIVARES</td>
+          <td>21 SUR 3960</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1982-03-09</td>
+          <td>0</td>
+          <td>2026-03-02</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>10141415</td>
+          <td>9</td>
+          <td>F</td>
+          <td>NURY TRINIDAD</td>
+          <td>OLAVE</td>
+          <td>TORRES</td>
+          <td>19 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>41328694</td>
+          <td>1966-08-04</td>
+          <td>11</td>
+          <td>2026-03-05</td>
+          <td>2026-03-10</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>20949660</td>
+          <td>7</td>
+          <td>F</td>
+          <td>MILLARAY ALEJANDRA</td>
+          <td>VÁSQUEZ</td>
+          <td>VENEGAS</td>
+          <td>PASAJE 20 SUR Nº 03610</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>94629192</td>
+          <td>2002-01-04</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>10899620</td>
+          <td>K</td>
+          <td>F</td>
+          <td>ROSA AMOR</td>
+          <td>CATALÁN</td>
+          <td>VALDÉS</td>
+          <td>CLOTARIO BLEST 7783</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>86693870</td>
+          <td>1969-02-18</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22816726</td>
+          <td>6</td>
+          <td>M</td>
+          <td>FRANCO MATÍAS</td>
+          <td>PÉREZ</td>
+          <td>ZÚÑIGA</td>
+          <td>PJE. 16 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>963132847</td>
+          <td>95769817</td>
+          <td>2008-09-09</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22343660</td>
+          <td>9</td>
+          <td>M</td>
+          <td>DIEGO ALONSO</td>
+          <td>SILVA</td>
+          <td>PINTO</td>
+          <td>20 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>225649133</td>
+          <td></td>
+          <td>2006-11-30</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>16725206</td>
+          <td>0</td>
+          <td>M</td>
+          <td>YERKO ALAHINS</td>
+          <td>CLARK</td>
+          <td>ROMERO</td>
+          <td>PEGASO 03596</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>98018872</td>
+          <td>1988-01-28</td>
+          <td>11</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>26072563</td>
+          <td>7</td>
+          <td>F</td>
+          <td>MISEMANE</td>
+          <td>JOSEMOND</td>
+          <td></td>
+          <td>PASAJE MARTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>78587410</td>
+          <td>1986-02-25</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>21801172</td>
+          <td>1</td>
+          <td>M</td>
+          <td>MILOVAN ANGELLO</td>
+          <td>VALDEBENITO</td>
+          <td>ESPINOSA</td>
+          <td>PASAJE 21 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>90339597</td>
+          <td>2005-03-18</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>2026-03-06</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>16547314</td>
+          <td>0</td>
+          <td>F</td>
+          <td>DANIELA ANDREA</td>
+          <td>LAGOS</td>
+          <td>OLIVARES</td>
+          <td>18 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>55345656</td>
+          <td>1987-02-26</td>
+          <td>0</td>
+          <td>2026-03-11</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22811909</td>
+          <td>1</td>
+          <td>M</td>
+          <td>DAYON BENJAMÍN</td>
+          <td>HIDALGO</td>
+          <td>TORRES</td>
+          <td>PABLO BUNCHARD 9161</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2008-09-02</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>16718862</td>
+          <td>1</td>
+          <td>M</td>
+          <td>SEBASTIÁN GONZALO</td>
+          <td>BUSTOS</td>
+          <td>CÁRCAMO</td>
+          <td>DON RAMON 9072</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1988-02-17</td>
+          <td>11</td>
+          <td>2026-04-06</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>13110289</td>
+          <td>5</td>
+          <td>F</td>
+          <td>SORAYA DEL PILAR</td>
+          <td>SÁEZ</td>
+          <td>MORAGA</td>
+          <td>PASAJE DIRIGENTE MANUEL SALADINO</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1972-01-10</td>
+          <td>11</td>
+          <td>2026-04-06</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>15426859</td>
+          <td>6</td>
+          <td>F</td>
+          <td>KAREN SOLANGE</td>
+          <td>JARA</td>
+          <td>SAAVEDRA</td>
+          <td>3 PONIENTE 2947</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1982-06-04</td>
+          <td>0</td>
+          <td>2026-04-13</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>18794966</td>
+          <td>1</td>
+          <td>F</td>
+          <td>NINOSKA POLIETTE</td>
+          <td>SILVA</td>
+          <td>GARDA</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1994-04-25</td>
+          <td>0</td>
+          <td>2026-04-13</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>22014783</td>
+          <td>5</td>
+          <td>M</td>
+          <td>ALAN ANTONIO</td>
+          <td>ARANEDA</td>
+          <td>GUARINGA</td>
+          <td>15 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>45177438</td>
+          <td>2005-12-18</td>
+          <td>7</td>
+          <td>2026-04-17</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>14193458</td>
+          <td>9</td>
+          <td>F</td>
+          <td>PAOLA ALEJANDRA</td>
+          <td>BRAVO</td>
+          <td>MUÑOZ</td>
+          <td>LO OVALLE 3563</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1981-03-26</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>17954107</td>
+          <td>6</td>
+          <td>F</td>
+          <td>ANA MARÍA</td>
+          <td>AHUMADA</td>
+          <td>CALFUMIL</td>
+          <td>PASAJE 1 PONIENTE</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>22015378</td>
+          <td>1992-02-26</td>
+          <td>7</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>28268689</td>
+          <td>9</td>
+          <td>M</td>
+          <td>JUAN GABRIEL</td>
+          <td>LEDOUE</td>
+          <td></td>
+          <td>UNIÓN FERROVIARIA 3467</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>20821575</td>
+          <td>2008-12-06</td>
+          <td>0</td>
+          <td>2026-04-01</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>B</td>
+          <td>18276423</td>
+          <td>K</td>
+          <td>F</td>
+          <td>JAZMÍN CAROLINA</td>
+          <td>LÓPEZ</td>
+          <td>MOLINA</td>
+          <td>SAN FRANCISCO 4756</td>
+          <td>SAN MIGUEL</td>
+          <td>13130</td>
+          <td>FLOESCUELA@GMAIL.COM</td>
+          <td></td>
+          <td></td>
+          <td>1992-06-14</td>
+          <td>0</td>
+          <td>2026-03-02</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22548789</td>
+          <td>8</td>
+          <td>M</td>
+          <td>MATTEO</td>
+          <td>SANDOVAL</td>
+          <td>TOBAR</td>
+          <td>LOS TAMARINDOS 11955</td>
+          <td>EL BOSQUE</td>
+          <td>13105</td>
+          <td></td>
+          <td></td>
+          <td>86311957</td>
+          <td>2007-11-06</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>26685811</td>
+          <td>6</td>
+          <td>F</td>
+          <td>MARIE BERLINE</td>
+          <td>REGISTRE</td>
+          <td></td>
+          <td>AVENIDA LO OVALLE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>76361110</td>
+          <td>1988-11-14</td>
+          <td>11</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22718510</td>
+          <td>4</td>
+          <td>M</td>
+          <td>MANUEL ALEXANDER</td>
+          <td>VEGA</td>
+          <td>CALISAYA</td>
+          <td>SANTA ANITA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>940305853</td>
+          <td>29554584</td>
+          <td>2008-05-11</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22794805</td>
+          <td>1</td>
+          <td>F</td>
+          <td>SOFÍA PASCALE</td>
+          <td>VARGAS</td>
+          <td>GALLEGUILLOS</td>
+          <td>11 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td>LESLIEGALLEGUILLOS5@GMAIL.COM</td>
+          <td></td>
+          <td>57209610</td>
+          <td>2008-07-29</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>21801172</td>
+          <td>1</td>
+          <td>M</td>
+          <td>MILOVAN ANGELLO</td>
+          <td>VALDEBENITO</td>
+          <td>ESPINOSA</td>
+          <td>PASAJE 21 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>90339597</td>
+          <td>2005-03-18</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>21978699</td>
+          <td>9</td>
+          <td>F</td>
+          <td>MARIA JOSÉ</td>
+          <td>FLORES</td>
+          <td>VALDEBENITO</td>
+          <td>14 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>982150784</td>
+          <td>64338293</td>
+          <td>2005-11-12</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>23007898</td>
+          <td>K</td>
+          <td>M</td>
+          <td>ALEJANDRO JHOAN</td>
+          <td>JARAMILLO</td>
+          <td>GALLEGUILLOS</td>
+          <td>PASAJE 7</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td>LESLIEGALLEGUILLOS5@GMAIL.COM</td>
+          <td>945025271</td>
+          <td>57209610</td>
+          <td>2009-04-27</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>21951870</td>
+          <td>6</td>
+          <td>F</td>
+          <td>ANAIS JULIANA</td>
+          <td>GUTIÉRREZ</td>
+          <td>ROGEL</td>
+          <td>4 ORIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>98765930</td>
+          <td>2005-10-07</td>
+          <td>0</td>
+          <td>2026-03-11</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22903056</td>
+          <td>6</td>
+          <td>F</td>
+          <td>ALONDRA ANTONELLA</td>
+          <td>MUÑOZ</td>
+          <td>ÁVILA</td>
+          <td>PASAJE 17 SUR 3644</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2008-12-20</td>
+          <td>0</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>18515222</td>
+          <td>7</td>
+          <td>M</td>
+          <td>JORGE ÁLVARO</td>
+          <td>MARGAS</td>
+          <td>GONZÁLEZ</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1994-02-13</td>
+          <td>0</td>
+          <td>2026-03-13</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>21854558</td>
+          <td>0</td>
+          <td>M</td>
+          <td>GEORGE ALEJANDRO</td>
+          <td>TRONCOSO</td>
+          <td>ALTAMIRANO</td>
+          <td>EDUARDO FREI MONTALBA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>25647347</td>
+          <td></td>
+          <td>2005-02-20</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>17226394</td>
+          <td>1</td>
+          <td>F</td>
+          <td>CECILIA CAROLINA</td>
+          <td>ZÚÑIGA</td>
+          <td>ARAVENA</td>
+          <td>SANTA ANITA 4065</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>569</td>
+          <td>28542926</td>
+          <td>1988-11-12</td>
+          <td>11</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>26974585</td>
+          <td>1</td>
+          <td>M</td>
+          <td>CEVENEL</td>
+          <td>MONDESIR</td>
+          <td></td>
+          <td>PASAJE SEIS PONIENTE</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>22545889</td>
+          <td>1995-06-19</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>26497867</td>
+          <td>K</td>
+          <td>M</td>
+          <td>JEAN FRANDLER</td>
+          <td>JEAN</td>
+          <td></td>
+          <td>BUENAVENTURA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>33080831</td>
+          <td>1997-05-01</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>2026-04-06</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>17313810</td>
+          <td>5</td>
+          <td>M</td>
+          <td>GIOVANNI ADRIÁN</td>
+          <td>MAGAÑA</td>
+          <td>CABALLERO</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1990-01-03</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22922547</td>
+          <td>2</td>
+          <td>F</td>
+          <td>FRANCISCA BELEN</td>
+          <td>MALDONADO</td>
+          <td>PUEBLA</td>
+          <td>OSA MAYOR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td>GENNYPUEBLA18@MAIL.COM</td>
+          <td>28544039</td>
+          <td>40680977</td>
+          <td>2009-01-16</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22224402</td>
+          <td>1</td>
+          <td>F</td>
+          <td>ZAMIRA LOURDES</td>
+          <td>RÍOS</td>
+          <td>MOLINA</td>
+          <td>EDO. FREI MONTALVA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td>25648520</td>
+          <td></td>
+          <td>2006-10-06</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>18223037</td>
+          <td>5</td>
+          <td>F</td>
+          <td>JENNIFER MACARENA</td>
+          <td>VILLAVICENCIO</td>
+          <td>CASTRO</td>
+          <td>CPASAJE 15 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>79811033</td>
+          <td>1992-08-20</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>2026-04-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>11669496</td>
+          <td>4</td>
+          <td>M</td>
+          <td>HÉCTOR ALFONSO</td>
+          <td>BRAVO</td>
+          <td>D`ALENCON</td>
+          <td></td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>1970-09-18</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>16718301</td>
+          <td>8</td>
+          <td>M</td>
+          <td>EMANUEL ANTONIO</td>
+          <td>HERNÁNDEZ</td>
+          <td>CONTRERAS</td>
+          <td>3 PONIENTE 7952</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>97864813</td>
+          <td>1988-01-15</td>
+          <td>0</td>
+          <td>2026-03-09</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22630967</td>
+          <td>5</td>
+          <td>F</td>
+          <td>ALEXIA YARA IGNACIA</td>
+          <td>MEJÍAS</td>
+          <td>LÓPEZ</td>
+          <td>14 SUR</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>27634478</td>
+          <td>2008-01-15</td>
+          <td>0</td>
+          <td>2026-03-01</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>17546891</td>
+          <td>9</td>
+          <td>F</td>
+          <td>GRACIELA SOLEDAD</td>
+          <td>VALLEJOS</td>
+          <td>VILLEGAS</td>
+          <td>LA HABANA</td>
+          <td>LO ESPEJO</td>
+          <td>13116</td>
+          <td></td>
+          <td></td>
+          <td>47529998</td>
+          <td>1986-07-21</td>
+          <td>11</td>
+          <td>2026-04-21</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>10238720</td>
+          <td>1</td>
+          <td>M</td>
+          <td>RUBÉN DARÍO</td>
+          <td>SOUZA</td>
+          <td>ÓRDENES</td>
+          <td>AVENIDA CENTRAL PASAJE H</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>29957878</td>
+          <td>1964-08-29</td>
+          <td>11</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>27104141</td>
+          <td>1</td>
+          <td>F</td>
+          <td>JUANA</td>
+          <td>SANCHEZ</td>
+          <td>OGANDO</td>
+          <td>PASAJE 2 PONIENTE 6108</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>37887685</td>
+          <td>1984-05-16</td>
+          <td>11</td>
+          <td>2026-03-29</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>22897314</td>
+          <td>9</td>
+          <td>M</td>
+          <td>MAXIMILIANO ANDRÉS</td>
+          <td>HERNÁNDEZ</td>
+          <td>MORAGA</td>
+          <td>AZTECA</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td>LA.KARENCITA.1983@GMAIL.COM</td>
+          <td></td>
+          <td>44369358</td>
+          <td>2008-12-10</td>
+          <td>0</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>21618997</td>
+          <td>3</td>
+          <td>M</td>
+          <td>NEHEMIAS ALEJANDRO</td>
+          <td>HERRERA</td>
+          <td>MORENO</td>
+          <td>PASAJE MANZANILLONES 3519</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2004-07-18</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>20574069</td>
+          <td>4</td>
+          <td>M</td>
+          <td>JEISON ALEJANDRO</td>
+          <td>VARGAS</td>
+          <td>FUENTES</td>
+          <td>PASAJE LOS MANZANILLONES 3562</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2000-09-05</td>
+          <td>0</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>28390879</td>
+          <td>8</td>
+          <td>M</td>
+          <td>ELORY NELSON</td>
+          <td>CEZAIRE</td>
+          <td></td>
+          <td></td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td>2007-11-18</td>
+          <td>11</td>
+          <td>2026-03-06</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>28360441</td>
+          <td>1</td>
+          <td>M</td>
+          <td>CARLENS</td>
+          <td>NARCISSE</td>
+          <td></td>
+          <td>ANDEN</td>
+          <td>PEDRO AGUIRRE CERDA</td>
+          <td>13121</td>
+          <td></td>
+          <td></td>
+          <td>55242666</td>
+          <td>2005-11-15</td>
+          <td>0</td>
+          <td>2026-04-01</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>26786389</td>
+          <td>K</td>
+          <td>M</td>
+          <td>STANLEY</td>
+          <td>DORCE</td>
+          <td></td>
+          <td>PASAJE OLGA MADY</td>
+          <td>SAN MIGUEL</td>
+          <td>13130</td>
+          <td></td>
+          <td></td>
+          <td>64315315</td>
+          <td>1987-10-14</td>
+          <td>11</td>
+          <td>2026-03-31</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>28625597</td>
+          <td>3</td>
+          <td>F</td>
+          <td>NADEGE</td>
+          <td>DORCE</td>
+          <td>HULYSSE</td>
+          <td>PASAJE OLGA MADY</td>
+          <td>SAN MIGUEL</td>
+          <td>13130</td>
+          <td></td>
+          <td></td>
+          <td>36709468</td>
+          <td>1990-02-07</td>
+          <td>11</td>
+          <td>2026-03-23</td>
+          <td>1900-01-01</td>
+          <td>100</td>
+          <td>0.0</td>
+        </tr>
+        <tr>
+          <td>2026</td>
+          <td>9690</td>
+          <td>363</td>
+          <td>3</td>
+          <td>2do nivel (3° y 4° medio)</td>
+          <td>C</td>
+          <td>18739648</td>
+          <td>4</td>
+          <td>M</td>
+          <td>MARIO ANDRÉS</td>
+          <td>DURÁN</td>
+          <td>SUÁREZ</td>
+          <td>QUEBRADA EL PEUMO 1379 D/13</td>
+          <td>SAN BERNARDO</td>
+          <td>13401</td>
+          <td></td>
+          <td>8451600</td>
+          <td></td>
+          <td>1994-05-26</td>
+          <td>0</td>
+          <td>2026-03-05</td>
+          <td>1900-01-01</td>
+          <td>0</td>
+          <td>0.0</td>
+        </tr>
+      </tbody>
+    </table>
+    <br />
+  </body>
+</html>

@@ -152,6 +152,11 @@ export default function ProfilePage() {
   const [newStLastName,    setNewStLastName]     = useState("");
   const [newStEmail,       setNewStEmail]       = useState("");
   const [newStPassword,    setNewStPassword]    = useState("");
+  const [newStRut,         setNewStRut]         = useState("");
+  const [newStGender,      setNewStGender]      = useState("");
+  const [newStCellphone,   setNewStCellphone]   = useState("");
+  const [newStClassName,   setNewStClassName]   = useState("");
+  const [newStAge,         setNewStAge]         = useState<number | "">("");
   const [newStSpecialty,   setNewStSpecialty]   = useState("");
   const [newStGrade,       setNewStGrade]       = useState("");
   const [addStudentErr,    setAddStudentErr]    = useState<string|null>(null);
@@ -774,6 +779,11 @@ export default function ProfilePage() {
       lastName:     newStLastName,
       email:        newStEmail,
       tempPassword: newStPassword,
+      rut:          newStRut,
+      gender:       newStGender,
+      cellphone:    newStCellphone,
+      class_name:   newStClassName,
+      age:          Number(newStAge) || 16,
       specialty:    newStSpecialty || undefined,
       grade:        newStGrade || undefined,
     });

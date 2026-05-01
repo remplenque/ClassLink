@@ -1,6 +1,47 @@
 import { z } from "zod";
 import { POST_TAGS } from "./specialties";
 
+// ── Chilean RUT utilities ────────────────────────────────────────────
+
+/** Compute the expected check digit for a RUT body string (digits only). */
+function rutCheckDigit(body: string): string {
+  let sum = 0;
+  let mult = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i], 10) * mult;
+    mult = mult === 7 ? 2 : mult + 1;
+  }
+  const r = 11 - (sum % 11);
+  if (r === 11) return "0";
+  if (r === 10) return "K";
+  return String(r);
+}
+
+/** Returns true when the RUT string has a valid check digit. Accepts any
+ *  common formatting (dots, dashes, spaces) and is case-insensitive. */
+export function isValidRut(rut: string): boolean {
+  const cleaned = rut.replace(/[\.\s]/g, "").toUpperCase();
+  // Must be body + '-' + dv, or body + dv with no dash (7-8 digits + [0-9K])
+  const match = cleaned.match(/^(\d{7,8})-?([0-9K])$/);
+  if (!match) return false;
+  return rutCheckDigit(match[1]) === match[2];
+}
+
+/** Formats a raw RUT string to XX.XXX.XXX-Y canonical form. */
+export function formatRut(rut: string): string {
+  const cleaned = rut.replace(/[\.\s-]/g, "").toUpperCase();
+  if (cleaned.length < 2) return cleaned;
+  const body = cleaned.slice(0, -1);
+  const dv   = cleaned.slice(-1);
+  const formatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${formatted}-${dv}`;
+}
+
+const rutSchema = z
+  .string()
+  .min(1, "RUT requerido")
+  .refine(isValidRut, { message: "RUT inválido (dígito verificador incorrecto)" });
+
 // ── Auth ────────────────────────────────────────────────────
 export const loginSchema = z.object({
   email:    z.string().email("Email inválido"),
@@ -33,8 +74,28 @@ export const createStudentSchema = z.object({
   tempPassword: z.string()
     .min(8,  "Mínimo 8 caracteres")
     .max(72, "Máximo 72 caracteres"),
-  specialty: z.string().max(100).optional(),
-  grade:     z.string().max(20).optional(),
+  rut:          rutSchema,
+  gender:       z.enum(["Masculino","Femenino","Otro","Prefiero no decir"], {
+    error: () => ({ message: "Género inválido" }),
+  }),
+  cellphone:    z.string().min(7, "Teléfono muy corto").max(20),
+  class_name:   z.string().min(1, "Clase requerida").max(30),
+  age:          z.coerce.number().int().min(10).max(100),
+  specialty:    z.string().max(100).optional(),
+  grade:        z.string().max(20).optional(),
+});
+
+// School edits existing student profile (all fields optional except identity)
+export const editStudentSchema = z.object({
+  rut:          rutSchema.optional(),
+  gender:       z.enum(["Masculino","Femenino","Otro","Prefiero no decir"]).optional(),
+  cellphone:    z.string().min(7).max(20).optional(),
+  class_name:   z.string().min(1).max(30).optional(),
+  age:          z.coerce.number().int().min(10).max(100).optional(),
+  specialty:    z.string().max(100).optional(),
+  grade:        z.string().max(20).optional(),
+  attendance:   z.coerce.number().int().min(0).max(100).optional(),
+  soft_skills:  z.array(z.string()).optional(),
 });
 
 // ── Profile ─────────────────────────────────────────────────
